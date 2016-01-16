@@ -438,12 +438,19 @@ cops_drupal_medias_owner: "1000"
 cops_drupal_medias_group: "1000"
 cops_drupal_force_sync_ssh_user: null
 cops_drupal_sync_ssh_user: ""
+ansible_bastion: ""
 cops_drupal_sync_ssh_user_internal: "{% if((cops_drupal_force_sync_ssh_user) or
         (cops_drupal_sync_ssh_user and (cops_drupal_force_sync_ssh_user == True))
     )%}{{ cops_drupal_sync_ssh_user or ansible_user or '' }}{% endif %}"
+teleport_env_ssh_deploy_key: "/srv/docker/{{cops_drupal_name}}/local/.ssh/deploy"
+teleport_bastion_ssh_deploy_key: "{{teleport_env_ssh_deploy_key}}"
+teleport_origin_viabastion_sshargs: "{% set d = hostvars[groups[teleport_origin][0]] %}{%if ansible_bastion%}-o ProxyCommand=\"ssh {% if teleport_bastion_ssh_deploy_key %}-i {{teleport_bastion_ssh_deploy_key}} {%endif%}-o IdentitiesOnly=yes -q -W {{d.ansible_host}}:{{d.ansible_port|default('22')}} {{ansible_bastion}} {%if ansible_bastion_user%}-l {{ansible_bastion_user}}{%endif%} -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no\" {%endif%}"
+teleport_destination_viabastion_sshargs: "{% set d = hostvars[groups[teleport_destination][0]] %}{%if ansible_bastion%}-o ProxyCommand=\"ssh {% if teleport_bastion_ssh_deploy_key %}-i {{teleport_bastion_ssh_deploy_key}} {%endif%}-o IdentitiesOnly=yes -q -W {{d.ansible_host}}:{{d.ansible_port|default('22')}} {{ansible_bastion}} {%if ansible_bastion_user%}-l {{ansible_bastion_user}}{%endif%} -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no\" {%endif%}"
+teleport_ssh_origin_args: "{{hostvars[groups[teleport_origin][0]].ansible_ssh_common_args | default('')}}"
+teleport_ssh_destination_args: "{{hostvars[groups[teleport_destination][0]].ansible_ssh_common_args | default('')}}"
 teleport_origin_sshargs_default: >-
   {% set h = groups[teleport_origin][0] %}
-  {% set k = teleport_ssh_origin_key_path%}
+  {% set k = hostvars[h].get('ansible_bastion', '') != '' and teleport_env_ssh_deploy_key or teleport_ssh_origin_key_path %}
   {% if k%}-o IdentityFile={{k}} -o IdentitiesOnly=yes{%endif%}
   -o StrictHostKeyChecking=no
   {% if (
@@ -451,14 +458,14 @@ teleport_origin_sshargs_default: >-
      ) not in [ 'smart', 'local'] %}
   {{ hostvars[h].ssh_args | default('') }}
   {{ hostvars[h].ansible_ssh_args | default('') }}
-  {{ hostvars[h].ansible_ssh_common_args | default('') }}
+  {{ ansible_bastion and teleport_origin_viabastion_sshargs or teleport_ssh_origin_args }}
   {{ hostvars[h].ansible_ssh_extra_args | default('') }}
   {% endif %}
-  {% set user = cops_drupal_sync_ssh_user or ansible_user or '' %}
+  {% set user = cops_drupal_sync_origin_ssh_user|default(cops_drupal_sync_ssh_user) or ansible_user or '' %}
   {% if cops_drupal_sync_ssh_user_internal %}-l {{user}}{% endif %}
 teleport_destination_sshargs_default: >-
   {% set h = groups[teleport_destination][0] %}
-  {% set k = teleport_ssh_destination_key_path%}
+  {% set k = hostvars[h].get('ansible_bastion', '') != '' and teleport_env_ssh_deploy_key or teleport_ssh_origin_key_path %}
   -o StrictHostKeyChecking=no
   {% if k%}-o IdentityFile={{k}} -o IdentitiesOnly=yes{%endif%}
   {% if (
@@ -466,13 +473,13 @@ teleport_destination_sshargs_default: >-
      ) not in [ 'smart', 'local'] %}
   {{ hostvars[h].ssh_args | default('') }}
   {{ hostvars[h].ansible_ssh_args | default('') }}
-  {{ hostvars[h].ansible_ssh_common_args | default('') }}
+  {{ ansible_bastion and teleport_destination_viabastion_sshargs or teleport_ssh_destination_args }}
   {{ hostvars[h].ansible_ssh_extra_args | default('') }}
   {% endif %}
   {% if((cops_drupal_force_sync_ssh_user) or
         (cops_drupal_sync_ssh_user and (cops_drupal_force_sync_ssh_user == True))
     )%}
-  {% set user = cops_drupal_sync_ssh_user or ansible_user or '' %}
+  {% set user = cops_drupal_sync_dest_ssh_user|default(cops_drupal_sync_ssh_user) or ansible_user or '' %}
   {% if user %}-l {{user}}{% endif %}
   {% endif %}
 teleport_post_reset_script_default: |-
