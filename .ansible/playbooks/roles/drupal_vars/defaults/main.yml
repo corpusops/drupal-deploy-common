@@ -454,6 +454,7 @@ teleport_origin_sshargs_default: >-
   {{ hostvars[h].ansible_ssh_common_args | default('') }}
   {{ hostvars[h].ansible_ssh_extra_args | default('') }}
   {% endif %}
+  {% set user = cops_drupal_sync_ssh_user or ansible_user or '' %}
   {% if cops_drupal_sync_ssh_user_internal %}-l {{user}}{% endif %}
 teleport_destination_sshargs_default: >-
   {% set h = groups[teleport_destination][0] %}
