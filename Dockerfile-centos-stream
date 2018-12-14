@@ -5,6 +5,7 @@
 # - stage final(base): copy results from build to a ligther image
 ARG BASE=corpusops/centos-bare:8
 FROM $BASE AS base
+ARG DRUPAL_DOCKERFILE_VERSION=1
 ARG APP_GROUP=
 ARG APP_TYPE=drupal
 ARG APP_USER=
@@ -24,6 +25,7 @@ ARG PHP_VER=7.4
 ARG PHP_VER_NO_DOT=74
 ARG TZ=Europe/Paris
 ENV \
+    DRUPAL_DOCKERFILE_VERSION="${DRUPAL_DOCKERFILE_VERSION}" \
     APP_TYPE="${APP_TYPE}" \
     BUILD_DEV="$BUILD_DEV" \
     PHP_GROUP="${PHP_GROUP}" \
