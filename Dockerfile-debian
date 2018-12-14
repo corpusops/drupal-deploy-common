@@ -5,6 +5,7 @@
 # - stage final(base): copy results from build to a ligther image
 ARG BASE=corpusops/debian-bare:11
 FROM $BASE AS base
+ARG DRUPAL_DOCKERFILE_VERSION=1
 ARG APP_GROUP=
 ARG APP_TYPE=drupal
 ARG APP_USER=
@@ -25,6 +26,7 @@ ARG PHP_VER_NO_DOT=72
 ARG TZ=Europe/Paris
 ARG COMPOSER_INSTALLED_FILE=/code/app/.composerinstalled
 ENV \
+    DRUPAL_DOCKERFILE_VERSION="${DRUPAL_DOCKERFILE_VERSION}" \
     APP_TYPE="${APP_TYPE}" \
     BUILD_DEV="$BUILD_DEV" \
     PHP_GROUP="${PHP_GROUP}" \
