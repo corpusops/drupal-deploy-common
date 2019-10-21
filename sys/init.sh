@@ -162,6 +162,9 @@ configure() {
     # regenerate drupal app/.env file
     frep "/code/app/.env.dist.frep:/code/app/.env" --overwrite
     chown drupal:drupal "/code/app/.env"
+    # regenerate drupal app/www/sites/default/settings.php file
+    frep "/code/app/www/sites/default/settings.php.frep:/code/app/www/sites/default/settings.php" --overwrite
+    chown drupal:drupal "/code/app/www/sites/default/settings.php"
 
     if [ -e /code/app/var/nginxwebroot ] && [[ -z ${NO_COLLECT_STATIC} ]]; then
         echo "Sync webroot for Nginx"
