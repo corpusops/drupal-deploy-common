@@ -174,6 +174,15 @@ configure() {
         rsync -a --delete --exclude files/ /code/app/www/ /code/app/var/nginxwebroot/
     fi
 
+    # add shortcut from /code/app/www/sites/default/files to /code/app/var/public
+    if [[ ! -L "$PROJECT_DIR/www/sites/default/files" ]];then
+        if [[ -d "$PROJECT_DIR/www/sites/default/files" ]]; then
+          rm -f "$PROJECT_DIR/www/sites/default/files"
+        fi
+        ( cd $PROJECT_DIR/www/sites/default/ \
+            && gosu $APP_USER ln -s ../../../var/public files )
+    fi
+
     # add shortcuts to composer binaries on the project if they do not exists
     if [[ ! -L "$PROJECT_DIR/bin/composerinstall" ]];then
         if [[ -f "$PROJECT_DIR/bin/composerinstall" ]]; then
