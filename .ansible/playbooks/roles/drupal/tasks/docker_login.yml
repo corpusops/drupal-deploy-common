@@ -1,0 +1,14 @@
+---
+# ansible can have leaks even with no_log with maximum output, just use a file
+- template:
+    src: registry
+    dest: "{{cops_drupal_dir}}/.dockerreg_{{item.registry}}_password"
+    mode: "0640"
+- shell: |-
+    set -ex
+    cd "{{cops_drupal_dir}}"
+    cat "{{cops_drupal_dir}}/.dockerreg_{{item.registry}}_password" \
+    | docker login {{item.registry}} --username="{{item.username}}" --password-stdin
+- file:
+    name: "{{cops_drupal_dir}}/.dockerreg_{{item.registry}}_password"
+    state: absent

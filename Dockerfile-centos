@@ -1,0 +1,151 @@
+ARG BASE=corpusops/centos-bare:7
+FROM $BASE
+ARG TZ=Europe/Paris
+ARG PHP_VER=7.2
+ARG PHP_VER_NO_DOT=72
+ENV BUILD_DEV=$BUILD_DEV
+ENV PHP_VER=$PHP_VER
+ENV PHP_VER_NO_DOT=$PHP_VER_NO_DOT
+# ENV DEBIAN_FRONTEND=noninteractive
+ARG BUILD_DEV=y
+
+# See https://github.com/nodejs/docker-node/issues/380
+ARG GPG_KEYS=B42F6819007F00F88E364FD4036A9C25BF357DD4
+ARG GPG_KEYS_SERVERS="hkp://p80.pool.sks-keyservers.net:80 hkp://ipv4.pool.sks-keyservers.net hkp://pgp.mit.edu:80"
+
+WORKDIR /code
+# ADD apt.txt /code/apt.txt
+ADD yum.txt /code/yum.txt
+
+USER root
+
+RUN bash -c 'set -ex \
+    && : "install packages" \
+    && yum -y update \
+    && yum -y install epel-release \
+    && yum -y install http://rpms.remirepo.net/enterprise/remi-release-7.rpm \
+    && rpm -Uvh https://yum.postgresql.org/10/redhat/rhel-7-x86_64/pgdg-centos10-10-2.noarch.rpm \
+    && yum install -y yum-utils yum-priorities \
+    && yum -y update \
+    && yum-config-manager --enable remi-php${PHP_VER_NO_DOT} \
+    && yum -y install $(grep -vE "^\s*#" /code/yum.txt  | tr "\n" " ") \
+    && yum clean all \
+    && php --version \
+    '
+
+# set locale
+ARG LANGUAGE=fr_FR
+ARG CHARSET=UTF-8
+ARG LANG=fr_FR.utf8
+RUN sh -exc ': \
+    && export INSTALL_LOCALES=${LANG} \
+    && export INSTALL_DEFAULT_LOCALE=${LANG} \
+    && if [ -e /usr/bin/setup_locales.sh ];then \
+        /usr/bin/setup_locales.sh; \
+    else \
+        localedef \
+            -i ${LANGUAGE} -c -f ${CHARSET} \
+            -A /usr/share/locale/locale.alias \
+            ${LANGUAGE}.${CHARSET};\
+    fi'
+ENV LANG=$LANG
+ENV LC_ALL=$LANG
+
+# setup project timezone, dependencies, user & workdir, gosu
+RUN bash -c 'set -ex \
+    && : "set correct timezone" \
+    && ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone \
+    '
+
+RUN bash -c 'set -ex \
+    && : "project user & workdir" \
+    && useradd -ms /bin/bash drupal --uid 1000 \
+      --home-dir /home/drupal \
+    && chmod 2755 /home/drupal/ \
+    && mkdir /home/drupal/.ssh \
+    && chmod 0700 /home/drupal/.ssh \
+    && chown -R drupal:drupal /home/drupal/ \
+    '
+
+RUN bash -c 'set -ex \
+    && cd /code \
+    && mkdir app \
+    && mkdir app/www \
+    && mkdir app/www/sites \
+    && mkdir app/www/sites/default \
+    && mkdir app/var \
+    && mkdir app/var/public \
+    && mkdir app/var/private \
+    && mkdir app/var/tmp \
+    && mkdir app/var/cache \
+    && mkdir app/var/nginxwebroot \
+    && mkdir app/bin \
+    && mkdir app/drush \
+    && mkdir app/lib \
+    && mkdir app/scripts \
+    && mkdir app/src \
+    && mkdir sbin \
+    && mkdir sys \
+    && mkdir init \
+    && mkdir -p local/drupal-deploy-common/ \
+    && chown -R drupal:drupal /code \
+    '
+ADD   --chown=drupal:drupal app           /code/app
+ADD                         sys/sbin      /code/sbin
+ADD                         sys           /code/sys
+ADD          local/drupal-deploy-common/  /code/local/drupal-deploy-common/
+
+# We make an intermediary init folder to allow to have the
+# entrypoint mounted as a volume in dev
+# cp -frnv => keeps existing stuff, add new stuff, this allows for existing files in project
+# overriding the common stuff
+# common -> sys
+# sys -> init
+# ==> init contains files from both local sys and common, common cannot override content from local sys
+RUN bash -c 'set -ex \
+    && : "connect init.sh" \
+    && find /code -not -user drupal \
+    | while read f;do chown drupal:drupal "$f";done \
+    && cp -frnv /code/local/drupal-deploy-common/sys/* sys \
+    && cp -frnv sys/* init \
+    && ln -sf $(pwd)/init/init.sh /init.sh \
+    '
+
+RUN bash -c 'set -ex \
+    && : "install composer" \
+    && curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer \
+    && /usr/local/bin/composer --version  \
+    '
+
+WORKDIR /code/app
+
+# Potential ssh keys for application user
+ADD keys/* /home/drupal/.ssh/
+RUN bash -c 'set -ex \
+    && : "alter rights and ownerships of ssh keys" \
+    && (chmod 0600 /home/drupal/.ssh/* || true) \
+    && (chmod 0644 /home/drupal/.ssh/*.pub || true) \
+    && (chown -R drupal:drupal /home/drupal/.ssh/* || true) \
+    '
+
+RUN bash -c 'set -ex \
+    && : "generate a default app.env from the app/.env.dist.frep" \
+    && frep "/code/app/.env.dist.frep:/code/app/.env" --overwrite \
+    && chown drupal:drupal /code/app/.env \
+    '
+
+# Note the --no-scripts for composer is to avoid the drupal cache clear
+# which requires a working database
+RUN bash -c 'set -ex \
+    && : "run  composerinstall.sh" \
+    && /code/init/sbin/composerinstall.sh --no-scripts \
+    '
+
+RUN bash -c 'set -ex \
+    && : "remove default php-fpm pool" \
+    && rm -f /etc/php-fpm.d/www.conf \
+  '
+
+# image will drop privileges itself using gosu
+ENTRYPOINT []
+CMD "/init.sh"

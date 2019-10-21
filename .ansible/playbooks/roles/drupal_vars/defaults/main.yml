@@ -1,0 +1,142 @@
+---
+cops_drupal_name: drupalinstance
+cops_drupal_project_module_name: "{{cops_drupal_name}}"
+cops_drupal_php_ver: "7.2"
+cops_drupal_deploy_env: "dev"
+cops_drupal_project_env: "DEV"
+cops_drupal_docker_image_tag: "{{cops_drupal_name}}"
+cops_drupal_default_docker_tag: "latest"
+cops_drupal_docker_tag: "{{cops_drupal_default_docker_tag}}"
+cops_drupal_tld_domain: example.com
+cops_drupal_mail_domain: "{{ cops_drupal_tld_domain }}"
+cops_drupal_default_gitref: "master"
+cops_drupal_gitref: "{{cops_drupal_default_gitref}}"
+cops_drupal_dir: "/srv/docker/{{cops_drupal_name}}"
+cops_drupal_hostname: "{{cops_drupal_deploy_env}}-{{cops_drupal_name}}.{{cops_drupal_tld_domain}}"
+cops_drupal_alternate_hostnames: [".{{cops_drupal_tld_domain}}"]
+cops_drupal_secret_key: "SuperSecret"
+cops_drupal_gateway: "{{ ansible_default_ipv4.address}}"
+cops_drupal_composename: "{{cops_drupal_name}}"
+cops_drupal_backuped_dbs: all
+cops_drupal_db_host: "db"
+cops_drupal_db_port: "5432"
+cops_drupal_db_user: "secretJFCxdffffwPH9R9jIi"
+cops_drupal_db_password: "secrdet44ff4gzQNe3c885ttgJ"
+cops_drupal_db_name: "{{cops_drupal_name}}"
+cops_drupal_devmode: False
+cops_drupal_build_args: "--no-cache drupal cron"
+cops_drupal_nginx_avoid_ssl_rewrite: ""
+# backup could be remove in a-while when we have redeployed it everywhere
+cops_drupal_restarted_services_default: "db drupal drupal-supervisor nginx backup cron"
+cops_drupal_restarted_services: "{{cops_drupal_restarted_services_default}}"
+cops_drupal_purge_volumes: []
+cops_drupal_sshargs: >-
+  {% set k = hostvars[inventory_hostname].get(
+                'ansible_ssh_private_key_file', '') %}
+  {% if k%}-o IdentityFile={{k}} -o IdentitiesOnly=yes{%endif%}
+  {% if (
+      hostvars[inventory_hostname].ansible_connection|default('ssh')
+     ) not in [ 'smart', 'local'] %}
+  {{ hostvars[inventory_hostname].ssh_args | default('') }}
+  {{ hostvars[inventory_hostname].ansible_ssh_args | default('') }}
+  {{ hostvars[inventory_hostname].ansible_ssh_common_args | default('') }}
+  {{ hostvars[inventory_hostname].ansible_ssh_extra_args | default('') }}
+  {% endif %}
+cops_drupal_build: false
+cops_drupal_pull: true
+cops_drupal_registries: []
+#- {registry: registry.foo.net, username: foo, password: bar}
+cops_drupal_compose_files: [docker-compose.yml, docker-compose-prod.yml]
+cops_drupal_dc:
+  docker-compose {% for i in cops_drupal_compose_files %} -f {{i}}{% endfor %}
+  -p "{{cops_drupal_composename}}"
+cops_drupal_default_from_email: noreply@{{cops_drupal_hostname}}
+cops_drupal_server_email: "{{cops_drupal_default_from_email}}"
+cops_drupal_mailcatcher_user: mailcatcher
+cops_drupal_mailcatcher_password: mailcatcher
+cops_drupal_server_email: "{{cops_drupal_default_from_email}}"
+cops_drupal_email_server: mailcatcher
+cops_drupal_email_host_user: ''
+cops_drupal_email_host_password: ''
+cops_drupal_email_host_port: 1025
+cops_drupal_email_use_tls: 'no'
+cops_drupal_hosts_whitelist: "{{(
+    [cops_drupal_hostname, '0.0.0.0', '.{0}'.format(cops_drupal_hostname)]+
+    cops_drupal_alternate_hostnames
+  )|join('-|_')}}"
+cops_drupal_sentry_tags: ["env:{{cops_drupal_deploy_env}}"]
+cops_drupal_sentry_dsn: ''
+cops_drupal_php_max_workers: "10"
+cops_drupal_php_max_spare_workers: "5"
+cops_drupal_php_min_spare_workers: "3"
+cops_drupal_php_apcu_enabled: "1"
+cops_drupal_php_opcache_enabled: "1"
+cops_drupal_docker_env_freeform: |-
+  {{ cops_drupal_docker_env_defaults}}
+  {{ cops_drupal_docker_env_extra}}
+cops_drupal_docker_env_defaults: |-
+  # This need to be changed in production
+  SECRET_KEY={{ cops_drupal_secret_key }}
+  # db
+  POSTGRES_USER={{ cops_drupal_db_user }}
+  POSTGRES_PORT={{ cops_drupal_db_port }}
+  POSTGRES_DB={{ cops_drupal_db_name }}
+  POSTGRES_HOST={{ cops_drupal_db_host }}
+  POSTGRES_PASSWORD={{cops_drupal_db_password }}
+  PGPASSWD={{cops_drupal_db_password }}
+  DATABASE_URL=pgsql://{{ cops_drupal_db_user }}:{{cops_drupal_db_password }}@{{ cops_drupal_db_host }}:{{ cops_drupal_db_port }}/{{ cops_drupal_db_name }}
+
+  PROJECT_PACKAGE={{ cops_drupal_name }}
+  PROJECT_DIR=/code/app
+  DRUPAL_NAME={{ cops_drupal_name }}
+  COOKIE_DOMAIN={{ cops_drupal_hostname }}
+  ABSOLUTE_URL_SCHEME=https
+  ABSOLUTE_URL_DOMAIN={{ cops_drupal_hostname }}
+  ABSOLUTE_URL_PORT=
+  PHP_MAX_WORKERS={{ cops_drupal_php_max_workers }}
+  PHP_MAX_SPARE_WORKERS={{ cops_drupal_php_max_spare_workers }}
+  PHP_MIN_SPARE_WORKERS={{ cops_drupal_php_min_spare_workers }}
+  PHP_APCU_ENABLED={{ cops_drupal_php_apcu_enabled }}
+  PHP_OPCACHE_ENABLED={{ cops_drupal_php_opcache_enabled }}
+  PROJECT_ENV={{ cops_drupal_project_env }}
+  # cors
+  DRUPAL__CORS_ORIGIN_WHITELIST={{cops_drupal_hosts_whitelist}}
+  DRUPAL__ALLOWED_HOSTS={{cops_drupal_hosts_whitelist}}
+  DRUPAL__DEPLOY_ENV={{cops_drupal_deploy_env}}
+  DRUPAL__PROJECT_ENV={{cops_drupal_project_env}}
+  {% if cops_drupal_sentry_dsn %}
+  DRUPAL__SENTRY_DSN={{cops_drupal_sentry_dsn}}
+  DRUPAL__SENTRY_RELEASE={{cops_drupal_docker_tag}}
+  DRUPAL__SENTRY_TAGS={{cops_drupal_sentry_tags|join(',')}}
+  {% endif %}
+  MAILCATCHER_USER={{cops_drupal_mailcatcher_user}}
+  MAILCATCHER_PASSWORD={{cops_drupal_mailcatcher_password}}
+  DBS_DBNAMES={{cops_drupal_backuped_dbs}}
+  NO_FORCE_SSL={{ cops_drupal_nginx_avoid_ssl_rewrite }}
+# free form for params inside dockerenv
+cops_drupal_dotenv: |-
+  APP_TYPE=drupal
+  DRUPAL_PHP_VER={{ cops_drupal_php_ver }}
+  DRUPAL_NAME={{ cops_drupal_name }}
+  COMPOSE_PROJECT_NAME={{cops_drupal_composename}}
+  CONTROL_COMPOSE_FIlES={{cops_drupal_compose_files|join(' ')}}
+  CI_COMMIT_SHA={{cops_drupal_gitref}}
+  DRUPAL_IMAGE={{ cops_drupal_docker_image }}
+  DRUPAL_IMAGE_VERSION={{cops_drupal_docker_tag}}
+  APP_ENV={{ cops_drupal_deploy_env }}
+  APP_SECRET={{ cops_drupal_secret_key }}
+cops_drupal_dotenv_extra: ""
+# free form for params inside dockerenv
+cops_drupal_docker_env_extra: ""
+# Normally playbook is in ./.ansible/playbooks
+cops_drupal_code_dir: "{{playbook_dir}}/../.."
+cops_drupal_code_rsync_opts: [
+    "-azv",
+    # include deploy projects base code
+    "--include", "local/*-deploy",
+    "--exclude", ".ansible",
+    "--exclude", "local/*",
+    "--exclude", ".tox",
+    "--exclude", ".env",
+    "--exclude", ".vscode",
+    "--exclude", "docker.env"]

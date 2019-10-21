@@ -1,0 +1,3 @@
+---
+- import_playbook: app.yml
+  tags: [play_drupal_app]

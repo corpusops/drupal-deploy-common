@@ -1,0 +1,116 @@
+---
+- file:
+    state: directory
+    mode: "2751"
+    path: "{{item}}"
+  with_items:
+  - "{{cops_drupal_dir}}"
+  - "{{cops_drupal_dir}}/local/postgresql/data"
+  - "{{cops_drupal_dir}}/local/backup"
+  - "{{cops_drupal_dir}}/local/backup/data"
+  - "{{cops_drupal_dir}}/local/backup/setup"
+- name: Synchronise files inside the environment (deleguation)
+  delegate_to: "localhost"
+  synchronize:
+    compress: false
+    ssh_args: "{{cops_drupal_sshargs}}"
+    src: "{{cops_drupal_code_dir}}"
+    dest: "{{cops_drupal_dir}}/"
+    rsync_opts: "{{cops_drupal_code_rsync_opts}}"
+    set_remote_user: "no"
+    #update_opts: '--recursive'
+- template:
+    src: "docker.env"
+    dest: "{{cops_drupal_dir}}/docker.env"
+    mode: "0640"
+    trim_blocks: false
+- blockinfile:
+    create: true
+    path: "{{cops_drupal_dir}}/.env"
+    content: |-
+      {{cops_drupal_dotenv}}
+      {{cops_drupal_dotenv_extra}}
+    marker: "# ANSIBLE MANAGED BLOCK :: deploy commit :: {mark}"
+- include_tasks: docker_login.yml
+  with_items: "{{cops_drupal_registries}}"
+- shell: |
+    set -ex
+    cd "{{cops_drupal_dir}}"
+    {{cops_drupal_dc}} build {{cops_drupal_build_args}}
+  when:
+  - "cops_drupal_build|copsf_asbool"
+  - "cops_drupal_build_args|copsf_asbool"
+# ensure all images are (re) pulled
+- shell: |
+    set -ex
+    cd "{{cops_drupal_dir}}"
+    {{cops_drupal_dc}} pull
+  retries: 5
+  delay: 10
+  when:
+  - "cops_drupal_pull|copsf_asbool"
+- include_role: {name: corpusops.roles/docker_compose_service}
+  vars:
+    _docker_compose_service:
+      working_directory: "{{cops_drupal_dir}}"
+      files: "{{cops_drupal_compose_files}}"
+      project: "{{cops_drupal_composename}}"
+      restart: "on-failure"
+  tags: [service]
+# ensure manually handled services are booted
+# to handle sidekar volumes refresh accuratly
+- shell: |
+    set -ex
+    cd "{{cops_drupal_dir}}"
+    {% for i in cops_drupal_restarted_services.split() %}
+    ret=
+    for i in $(seq 30);do
+      if ( {{cops_drupal_dc}} ps --services \
+           --filter status=running | egrep -q "^{{i}}$");then
+        {{cops_drupal_dc}} up -d --no-deps --remove-orphans --force-recreate {{i}}
+        ret=$?
+      else
+        {{cops_drupal_dc}} up -d --no-deps --remove-orphans {{i}}
+      fi
+      if [ "x$ret" = "x0" ];then break;fi
+      sleep 1
+    done
+    if [ "x$ret" != "x0" ];then echo "{{i}}: failed restart";exit 1;fi
+    {% endfor %}
+- shell: |
+    set -ex
+    cd "{{cops_drupal_dir}}"
+    {% for i in cops_drupal_restarted_services.split()|reverse %}
+    {{cops_drupal_dc}} ps --services --filter status=running | egrep -q "^{{i}}$"
+    {% endfor %}
+  retries: 60
+  delay: 1
+  register: restarted_docker_services
+  until: "restarted_docker_services.rc == 0"
+## as we use a named volume for nginx sidekar container, also
+## purge the obsolete volumes leftover in-between
+- shell: |
+    set -ex
+    cd "{{cops_drupal_dir}}"
+    if [[ -n "{{cops_drupal_docker_tag}}" ]];then
+    {% for purge_volume in cops_drupal_purge_volumes %}
+    for v in $(docker volume ls |awk '{print $2 }'|egrep "^{{cops_drupal_composename}}-{{purge_volume}}-"|grep -v {{cops_drupal_docker_tag}});do
+      if ( docker volume inspect $v >/dev/null 2>&1; );then
+        if ! ( docker volume rm -f $v; );then
+          docker volume inspect $v;exit 1;
+        fi
+        echo "purged volume $v">&2
+      fi
+    done
+    {% endfor %}
+    fi
+  # let time to docker to clean volumes
+  args: {executable: /bin/bash}
+  retries: 60
+  delay: 1
+  register: purge_volumes
+  until: "purge_volumes.rc == 0"
+  when:
+  - "cops_drupal_docker_tag|copsf_asbool"
+  - "cops_drupal_purge_volumes|copsf_asbool"
+  changed_when: "'purged volume' in purge_volumes.stderr"

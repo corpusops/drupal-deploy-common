@@ -1,0 +1,21 @@
+; Enable xdebug extension module
+zend_extension=xdebug.so
+
+; http://xdebug.org/docs/all_settings#collect_params (0|1|2|3|4)
+xdebug.remote_enable = {{ .Env.PHP_XDEBUG_REMOTE }}
+xdebug.remote_host = "{{ .Env.PHP_XDEBUG_IP }}"
+xdebug.remote_port = {{ .Env.PHP_XDEBUG_PORT }}
+xdebug.remote_handler = dbgp
+xdebug.profiler_output_name =  "/cachegrind.out.%p"
+xdebug.profiler_enable_trigger = {{ .Env.PHP_XDEBUG_PROFILER_ENABLE_TRIGGER }}
+xdebug.remote_autostart = {{ .Env.PHP_XDEBUG_REMOTE_AUTOSTART }}
+xdebug.trace_enable_trigger = {{ .Env.PHP_XDEBUG_PROFILER_ENABLE_TRIGGER }}
+xdebug.trace_format = 1
+xdebug.output_dir="/tmp"
+xdebug.profiler_output_dir ="/tmp"
+xdebug.trace_output_dir ="/tmp"
+xdebug.default_enable = 0
+xdebug.collect_params = 0
+xdebug.profiler_enable = 0
+xdebug.remote_connect_back = 0
+xdebug.remote_log=""

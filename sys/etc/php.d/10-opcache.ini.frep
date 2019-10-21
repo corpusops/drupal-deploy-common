@@ -1,0 +1,20 @@
+{{ $opcache_enabled := .Env.PHP_OPCACHE_ENABLED | default "1" }}
+{{ if eq $opcache_enabled "1" }}
+zend_extension=opcache
+opcache.enable=1
+opcache.enable_cli=1
+; Memory in MB
+opcache.memory_consumption=128
+; Memory in MB
+opcache.interned_strings_buffer=8
+; Absolute number
+opcache.max_accelerated_files=4000
+; 0 = deactivate, 1 = activate
+opcache.validate_timestamps=1
+; seconds, 0 = always
+; opcache.revalidate_freq=2
+; Bitflags, all to 1 = everything enabled
+; opcache.optimization_level=0xffffffff
+; Site in bytes, 0 = no limit
+opcache.max_file_size=0
+{{ end }}
