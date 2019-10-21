@@ -92,6 +92,7 @@ cops_drupal_docker_env_defaults: |-
   COOKIE_DOMAIN={{ cops_drupal_hostname }}
   ABSOLUTE_URL_SCHEME=https
   ABSOLUTE_URL_DOMAIN={{ cops_drupal_hostname }}
+  ABSOLUTE_URL_DOMAIN_ESCAPE={{ cops_drupal_hostname.replace('.','\.') }}
   ABSOLUTE_URL_PORT=
   PHP_MAX_WORKERS={{ cops_drupal_php_max_workers }}
   PHP_MAX_SPARE_WORKERS={{ cops_drupal_php_max_spare_workers }}
