@@ -231,6 +231,12 @@ services_setup() {
         fi
     fi
 
+    # Run install ?
+    if [[ -z ${NO_INSTALL} ]];then
+        ( cd $PROJECT_DIR \
+            && gosu $APP_USER php bin/install.sh )
+    fi
+
     # Run any migration
     if [[ -z ${NO_MIGRATE} ]];then
         ( cd $PROJECT_DIR \
