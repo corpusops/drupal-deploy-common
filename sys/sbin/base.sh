@@ -36,7 +36,8 @@ STOP_CRON_FLAG="${PRIVATE_DIR}/suspend_drupal_cron_flag"
 MAINTENANCE_FLAG="${PRIVATE_DIR}/MAINTENANCE"
 
 # System User
-USER="${USER:-$(whoami)}"
+APP_USER="${APP_USER:-$(whoami)}"
+USER="${APP_USER}"
 GROUP="${GROUP:-$(groups|awk '{print $0}')}"
 
 # Locale to set
@@ -322,6 +323,7 @@ check_public_files_symlink() {
     if [ ! -d "${SITES_DIR}/default" ]; then
         echo "${YELLOW}+ Creating ${SITES_DIR}/default${NORMAL}";
         mkdir -p "${SITES_DIR}/default"
+        chown ${USER}:${GROUP} "${SITES_DIR}/default"
     fi
     # Drupal specifics, checks /www/sites/default
     # is really symbolic link to /sites/default directory
@@ -331,11 +333,14 @@ check_public_files_symlink() {
                 echo "${YELLOW}+ ${SITES_DIR}/default/files is a real directory!${NORMAL}"
                 echo "${RED}++ moving it to ${SITES_DIR}/default/files.bak!${NORMAL}"
                 mv "${SITES_DIR}/default/files" "${SITES_DIR}/default/files.bak"
+                chown ${USER}:${GROUP} "${SITES_DIR}/default".bak
             fi
         fi
     else
         echo "${YELLOW}+ Creating ${SITES_DIR}/default${NORMAL}"
         mkdir -p "${SITES_DIR}/default"
+        chown ${USER}:${GROUP} "${SITES_DIR}"
+        chown ${USER}:${GROUP} "${SITES_DIR}/default"
     fi
 
     echo "${YELLOW}+ Testing relative link ${SITES_DIR}/default/files exists ${NORMAL}"
@@ -345,6 +350,7 @@ check_public_files_symlink() {
         cd "${SITES_DIR}/default"
         echo "${YELLOW}++ Relative path used is: ../../../var/public ${NORMAL}"
         ln -s ../../../var/public files
+        chown -h ${USER}:${GROUP} files
         cd -
     fi
 }
