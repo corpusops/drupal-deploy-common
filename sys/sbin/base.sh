@@ -130,9 +130,9 @@ vv() {
 
 settings_folder_write_fix() {
     cd "${ROOTPATH}"
-    echo "${YELLOW}+ Check Write rights in ${SITES_SUBDIR}${NORMAL}"
-    chmod u+w "${SITES_SUBDIR}"
-    chown ${USER}:${GROUP} "${SITES_SUBDIR}"
+    echo "${YELLOW}+ Check Write rights in ${SITES_DIR}/${SITES_SUBDIR}${NORMAL}"
+    chmod u+w "${SITES_DIR}/${SITES_SUBDIR}"
+    chown ${USER}:${GROUP} "${SITES_DIR}/${SITES_SUBDIR}"
 }
 
 test_drush_status()  {

@@ -44,6 +44,7 @@ IMAGE_MODES="(cron|nginx|fg|phpfpm|supervisor)"
 NO_START=${NO_START-}
 DEFAULT_NO_MIGRATE=
 DEFAULT_NO_COMPOSER=
+DEFAULT_NO_INSTALL=
 DEFAULT_NO_STARTUP_LOGS=
 DEFAULT_NO_COLLECT_STATIC=
 if [[ -n $@ ]];then
@@ -54,6 +55,7 @@ fi
 NO_STARTUP_LOGS=${NO_STARTUP_LOGS-${NO_MIGRATE-$DEFAULT_NO_STARTUP_LOGS}}
 NO_MIGRATE=${NO_MIGRATE-$DEFAULT_NO_MIGRATE}
 NO_COMPOSER=${NO_COMPOSER-$DEFAULT_NO_COMPOSER}
+NO_INSTALL=${NO_INSTALL-$DEFAULT_NO_INSTALL}
 NO_COLLECT_STATIC=${NO_COLLECT_STATIC-$DEFAULT_NO_COLLECT_STATIC}
 NO_IMAGE_SETUP="${NO_IMAGE_SETUP:-"1"}"
 FORCE_IMAGE_SETUP="${FORCE_IMAGE_SETUP:-"1"}"
@@ -270,7 +272,7 @@ fixperms() {
 usage() {
     drun="docker run --rm -it <img>"
     echo "EX:
-$drun [-e NO_COLLECT_STATIC=1] [-e NO_MIGRATE=1] [-e NO_COMPOSER=1] [ -e FORCE_IMAGE_SETUP] [-e IMAGE_MODE=\$mode]
+$drun [-e NO_COLLECT_STATIC=1] [-e NO_MIGRATE=1] [-e NO_COMPOSER=1]  [-e NO_INSTALL=1] [ -e FORCE_IMAGE_SETUP] [-e IMAGE_MODE=\$mode]
     docker run <img>
         run either fg, nginx, cron, supervisor or phpfpm daemon
         (IMAGE_MODE: $IMAGE_MODES)
@@ -285,6 +287,7 @@ $drun [ -e FORCE_IMAGE_SETUP=1] [ -e NO_IMAGE_SETUP=1] [-e SHELL_USER=\$ANOTHERU
 If FORCE_IMAGE_SETUP is set: run migration
 If NO_IMAGE_SETUP is set: migration is skipped, no matter what
 If NO_START is set: start an infinite loop doing nothing (for dummy containers in dev)
+If NO_INSTALL is set: no attempt at installing Drupal via drush install will be made
 "
   exit 0
 }
