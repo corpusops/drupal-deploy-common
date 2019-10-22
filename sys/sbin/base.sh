@@ -344,9 +344,9 @@ check_public_files_symlink() {
         chown ${USER}:${GROUP} "${SITES_DIR}/default"
     fi
 
-    echo "${YELLOW}+ Testing relative link ${SITES_DIR}/default/files exists ${NORMAL}"
+    # echo "${YELLOW}+ Testing relative link ${SITES_DIR}/default/files exists ${NORMAL}"
     if [ ! -h ${SITES_DIR}/default/files ]; then
-        echo "${YELLOW}++ No, so Creating relative symbolic link to ../../../var/public for ${SITES_DIR}/default/files${NORMAL}";
+        echo "${YELLOW}++ Creating relative symbolic link to ../../../var/public for ${SITES_DIR}/default/files${NORMAL}";
         settings_folder_write_fix
         cd "${SITES_DIR}/default"
         echo "${YELLOW}++ Relative path used is: ../../../var/public ${NORMAL}"
