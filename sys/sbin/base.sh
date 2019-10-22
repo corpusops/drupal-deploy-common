@@ -12,11 +12,17 @@ GREEN=$'\e[32;01m';
 NORMAL=$'\e[0m'
 CYAN="\\e[0;36m"
 
+SDEBUG=${SDEBUG-}
+
 # exit codes
 END_SUCCESS=0
 END_FAIL=1
 END_RECVSIG=3
 END_BADUSAGE=65
+
+# activate shell debug if SDEBUG is set
+if [[ -n $SDEBUG ]];then set -x;fi
+
 NONINTERACTIVE="${NONINTERACTIVE:-}"
 
 ROOTPATH="${ROOTPATH:-/code/app}"
