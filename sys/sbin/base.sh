@@ -42,7 +42,7 @@ COMPOSER="${BINPATH}/composer"
 # drush bare script abs path
 DRUSH_CMD="${DRUSH_CMD:-}"
 # drush var script search path if not found
-DRUSH_PRETENDANTS="${DRUSH_PRETENDANTS:-"${ROOTPATH}/vendor/drush/drush/drush ${ROOTPATH}/lib/vendor/drush/drush/drush ${ROOTPATH}/sbin/vendor/drush/drush/drush $(which drush) /usr/local/bin/drush /usr/bin/drush drush"}"
+DRUSH_PRETENDANTS="${DRUSH_PRETENDANTS:-"${ROOTPATH}/vendor/drush/drush/drush ${ROOTPATH}/lib/vendor/drush/drush/drush ${ROOTPATH}/sbin/vendor/drush/drush/drush /usr/local/bin/drush /usr/bin/drush drush"}"
 DRUSH_EXTRA_ARGS=""
 DRUSH_CALL=""
 
