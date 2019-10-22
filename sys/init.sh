@@ -18,7 +18,7 @@ for VENV in ./venv ../venv;do
 done
 
 # sourcing bash utilities
-. "/code/sys/base.sh"
+. "/code/init/sbin/base.sh"
 
 PROJECT_DIR=$TOPDIR
 if [ -e app ];then
@@ -177,10 +177,7 @@ configure() {
         rsync -a --delete --exclude files/ /code/app/www/ /code/app/var/nginxwebroot/
     fi
 
-    # add shortcut from /code/app/www/sites/default/files to /code/app/var/public
-    check_public_files_symlink
-
-    # add shortcuts to composer binaries on the project if they do not exists
+    # add shortcuts to some binaries on the project if they do not exists
     if [[ ! -L "$PROJECT_DIR/bin/composerinstall" ]];then
         if [[ -f "$PROJECT_DIR/bin/composerinstall" ]]; then
           rm -f "$PROJECT_DIR/bin/composerinstall"
@@ -195,6 +192,17 @@ configure() {
         ( cd $PROJECT_DIR/bin \
             && gosu $APP_USER ln -s ../../init/sbin/composer.sh composer )
     fi
+
+    if [[ ! -L "$PROJECT_DIR/bin/base.sh" ]];then
+        if [[ -f "$PROJECT_DIR/bin/base.sh" ]]; then
+          rm -f "$PROJECT_DIR/bin/base.sh"
+        fi
+        ( cd $PROJECT_DIR/bin \
+            && gosu $APP_USER ln -s ../../init/sbin/base.sh base.sh )
+    fi
+
+    # add shortcut from /code/app/www/sites/default/files to /code/app/var/public
+    check_public_files_symlink
 }
 
 #  services_setup: when image run in daemon mode: pre start setup
