@@ -17,6 +17,9 @@ for VENV in ./venv ../venv;do
     if [ -e $VENV ];then . $VENV/bin/activate;break;fi
 done
 
+# sourcing bash utilities
+. "/code/sys/base.sh"
+
 PROJECT_DIR=$TOPDIR
 if [ -e app ];then
     PROJECT_DIR=$TOPDIR/app
@@ -175,13 +178,7 @@ configure() {
     fi
 
     # add shortcut from /code/app/www/sites/default/files to /code/app/var/public
-    if [[ ! -L "$PROJECT_DIR/www/sites/default/files" ]];then
-        if [[ -d "$PROJECT_DIR/www/sites/default/files" ]]; then
-          rm -f "$PROJECT_DIR/www/sites/default/files"
-        fi
-        ( cd $PROJECT_DIR/www/sites/default/ \
-            && gosu $APP_USER ln -s ../../../var/public files )
-    fi
+    check_public_files_symlink
 
     # add shortcuts to composer binaries on the project if they do not exists
     if [[ ! -L "$PROJECT_DIR/bin/composerinstall" ]];then
