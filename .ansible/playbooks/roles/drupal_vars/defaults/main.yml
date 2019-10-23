@@ -78,13 +78,19 @@ cops_drupal_docker_env_defaults: |-
   # This need to be changed in production
   SECRET_KEY={{ cops_drupal_secret_key }}
   # db
+  POSTGRES_STARTUP_TIMEOUT=45s
   POSTGRES_USER={{ cops_drupal_db_user }}
   POSTGRES_PORT={{ cops_drupal_db_port }}
   POSTGRES_DB={{ cops_drupal_db_name }}
   POSTGRES_HOST={{ cops_drupal_db_host }}
   POSTGRES_PASSWORD={{cops_drupal_db_password }}
   PGPASSWD={{cops_drupal_db_password }}
-  DATABASE_URL=pgsql://{{ cops_drupal_db_user }}:{{cops_drupal_db_password }}@{{ cops_drupal_db_host }}:{{ cops_drupal_db_port }}/{{ cops_drupal_db_name }}
+  DATABASE_DRIVER=pgsql
+  DATABASE_DB={{ cops_drupal_db_name }}
+  DATABASE_USER={{ cops_drupal_db_user }}
+  DATABASE_PASSWD={{cops_drupal_db_password }}
+  DATABASE_HOST={{ cops_drupal_db_host }}
+  DATABASE_PORT={{ cops_drupal_db_port }}
 
   PROJECT_PACKAGE={{ cops_drupal_name }}
   PROJECT_DIR=/code/app
@@ -94,6 +100,22 @@ cops_drupal_docker_env_defaults: |-
   ABSOLUTE_URL_DOMAIN={{ cops_drupal_hostname }}
   ABSOLUTE_URL_DOMAIN_ESCAPE={{ cops_drupal_hostname.replace('.','\.') }}
   ABSOLUTE_URL_PORT=
+
+  # Used in INSTALL ---------------
+  PROFILE_NAME={{ cops_drupal_name }}
+  SITE_NAME={{ cops_drupal_name }}
+  SITE_MAIL=contact@{{ cops_drupal_hostname }}
+  ADMIN_MAIL=sysadmin+{{ cops_drupal_name }}@{{ cops_drupal_hostname }}
+  ADMIN_NAME=admin
+  # ADMIN_PASS is set via docker-compose-dev.yml or via gitlab-ci secrets
+  # or any other documented way before running install script
+  SITE_DEFAULT_COUNTRY=FR
+  DATE_DEFAULT_TIMEZONE=Europe/Paris
+  UPDATE_STATUS_MODULE=0
+  DRUPAL_URI=http://{{ cops_drupal_hostname }}
+  DRUSH_EXTRA_ARGS='--uri="${DRUPAL_URI}"'
+
+  # settings
   PHP_MAX_WORKERS={{ cops_drupal_php_max_workers }}
   PHP_MAX_SPARE_WORKERS={{ cops_drupal_php_max_spare_workers }}
   PHP_MIN_SPARE_WORKERS={{ cops_drupal_php_min_spare_workers }}
@@ -124,7 +146,7 @@ cops_drupal_dotenv: |-
   CI_COMMIT_SHA={{cops_drupal_gitref}}
   DRUPAL_IMAGE={{ cops_drupal_docker_image }}
   DRUPAL_IMAGE_VERSION={{cops_drupal_docker_tag}}
-  APP_ENV={{ cops_drupal_deploy_env }}
+  DRUPAL_ENV_NAME={{ cops_drupal_deploy_env }}
   APP_SECRET={{ cops_drupal_secret_key }}
 cops_drupal_dotenv_extra: ""
 # free form for params inside dockerenv
