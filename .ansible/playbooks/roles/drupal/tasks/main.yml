@@ -114,3 +114,14 @@
   - "cops_drupal_docker_tag|copsf_asbool"
   - "cops_drupal_purge_volumes|copsf_asbool"
   changed_when: "'purged volume' in purge_volumes.stderr"
+# install drupal website (do nothing if already installed)
+- shell: |
+    set -ex
+    cd "{{cops_drupal_dir}}"
+    NONINTERACTIVE=1 bin/install.sh
+# Always run the post-update script
+# (database migrations if any & CMI config sync)
+- shell: |
+    set -ex
+    cd "{{cops_drupal_dir}}"
+    NONINTERACTIVE=1 bin/post_update.sh
