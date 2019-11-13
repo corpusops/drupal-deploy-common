@@ -118,10 +118,10 @@
 - shell: |
     set -ex
     cd "{{cops_drupal_dir}}"
-    {{cops_drupal_dc}} exec -u drupal drupal /bin/bash -c "NONINTERACTIVE=1 bin/install.sh"
+    {{cops_drupal_dc}} exec -T -u drupal drupal /bin/bash -c "NONINTERACTIVE=1 bin/install.sh"
 # Always run the post-update script
 # (database migrations if any & CMI config sync)
 - shell: |
     set -ex
     cd "{{cops_drupal_dir}}"
-    {{cops_drupal_dc}} exec -u drupal drupal /bin/bash -c "NONINTERACTIVE=1 bin/post_update.sh"
+    {{cops_drupal_dc}} exec -T -u drupal drupal /bin/bash -c "NONINTERACTIVE=1 bin/post_update.sh"
