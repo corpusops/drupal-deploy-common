@@ -27,7 +27,7 @@ cops_drupal_devmode: False
 cops_drupal_build_args: "--no-cache drupal cron"
 cops_drupal_nginx_avoid_ssl_rewrite: ""
 # backup could be remove in a-while when we have redeployed it everywhere
-cops_drupal_restarted_services_default: "db drupal drupal-supervisor nginx backup cron"
+cops_drupal_restarted_services_default: "db drupal nginx backup cron"
 cops_drupal_restarted_services: "{{cops_drupal_restarted_services_default}}"
 cops_drupal_purge_volumes: []
 cops_drupal_sshargs: >-
