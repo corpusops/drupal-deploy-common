@@ -125,8 +125,12 @@ cops_drupal_docker_env_defaults: |-
   # cors
   DRUPAL__CORS_ORIGIN_WHITELIST={{cops_drupal_hosts_whitelist}}
   DRUPAL__ALLOWED_HOSTS={{cops_drupal_hosts_whitelist}}
+  # env target
   DRUPAL__DEPLOY_ENV={{cops_drupal_deploy_env}}
   DRUPAL__PROJECT_ENV={{cops_drupal_project_env}}
+  # HTTP protection
+  DRUPAL__HTTP_PROTECT_USER={{cops_drupal_http_protect_user}}
+  DRUPAL__HTTP_PROTECT_PASSWORD={{cops_drupal_http_protect_password}}
   {% if cops_drupal_sentry_dsn %}
   DRUPAL__SENTRY_DSN={{cops_drupal_sentry_dsn}}
   DRUPAL__SENTRY_RELEASE={{cops_drupal_docker_tag}}
