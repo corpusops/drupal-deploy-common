@@ -18,6 +18,7 @@ cops_drupal_secret_key: "SuperSecret"
 cops_drupal_gateway: "{{ ansible_default_ipv4.address}}"
 cops_drupal_composename: "{{cops_drupal_name}}"
 cops_drupal_backuped_dbs: all
+cops_drupal_db_prefix: ""
 cops_drupal_db_host: "db"
 cops_drupal_db_port: "5432"
 cops_drupal_db_user: "secretJFCxdffffwPH9R9jIi"
@@ -93,7 +94,7 @@ cops_drupal_docker_env_defaults: |-
   DATABASE_PASSWD={{cops_drupal_db_password }}
   DATABASE_HOST={{ cops_drupal_db_host }}
   DATABASE_PORT={{ cops_drupal_db_port }}
-
+  DATABASE_PREFIX={{ cops_drupal_db_prefix }}
   PROJECT_PACKAGE={{ cops_drupal_name }}
   PROJECT_DIR=/code/app
   DRUPAL_NAME={{ cops_drupal_name }}
