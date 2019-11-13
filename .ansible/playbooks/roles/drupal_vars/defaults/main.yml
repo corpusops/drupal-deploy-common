@@ -86,6 +86,7 @@ cops_drupal_docker_env_defaults: |-
   POSTGRES_HOST={{ cops_drupal_db_host }}
   POSTGRES_PASSWORD={{cops_drupal_db_password }}
   PGPASSWD={{cops_drupal_db_password }}
+  PGPASSWORD={{cops_drupal_db_password }}
   DATABASE_DRIVER=pgsql
   DATABASE_DB={{ cops_drupal_db_name }}
   DATABASE_USER={{ cops_drupal_db_user }}
