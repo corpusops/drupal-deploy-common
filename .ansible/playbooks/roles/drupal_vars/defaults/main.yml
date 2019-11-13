@@ -66,6 +66,7 @@ cops_drupal_hosts_whitelist: "{{(
   )|join('-|_')}}"
 cops_drupal_sentry_tags: ["env:{{cops_drupal_deploy_env}}"]
 cops_drupal_sentry_dsn: ''
+cops_drupal_admin_pass: ''
 cops_drupal_php_max_workers: "10"
 cops_drupal_php_max_spare_workers: "5"
 cops_drupal_php_min_spare_workers: "3"
@@ -107,8 +108,7 @@ cops_drupal_docker_env_defaults: |-
   SITE_MAIL=contact@{{ cops_drupal_hostname }}
   ADMIN_MAIL=sysadmin+{{ cops_drupal_name }}@{{ cops_drupal_hostname }}
   ADMIN_NAME=admin
-  # ADMIN_PASS is set via docker-compose-dev.yml or via gitlab-ci secrets
-  # or any other documented way before running install script
+  ADMIN_PASS={{ cops_drupal_admin_pass }}
   SITE_DEFAULT_COUNTRY=FR
   DATE_DEFAULT_TIMEZONE=Europe/Paris
   UPDATE_STATUS_MODULE=0
