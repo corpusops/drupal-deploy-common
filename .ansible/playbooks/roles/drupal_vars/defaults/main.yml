@@ -51,6 +51,7 @@ cops_drupal_compose_files: [docker-compose.yml, docker-compose-prod.yml]
 cops_drupal_dc:
   docker-compose {% for i in cops_drupal_compose_files %} -f {{i}}{% endfor %}
   -p "{{cops_drupal_composename}}"
+cops_drupal_force_reinstall:  "{{ lookup('env', 'DRUPAL_FORCE_INSTALL') or ''}}"
 cops_drupal_default_from_email: noreply@{{cops_drupal_hostname}}
 cops_drupal_server_email: "{{cops_drupal_default_from_email}}"
 cops_drupal_mailcatcher_user: mailcatcher
@@ -105,6 +106,7 @@ cops_drupal_docker_env_defaults: |-
   ABSOLUTE_URL_PORT=
 
   # Used in INSTALL ---------------
+  DRUPAL_FORCE_INSTALL={{ cops_drupal_force_reinstall }}
   PROFILE_NAME={{ cops_drupal_name }}
   SITE_NAME={{ cops_drupal_name }}
   SITE_MAIL=contact@{{ cops_drupal_hostname }}
