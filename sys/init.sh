@@ -171,13 +171,6 @@ configure() {
     frep "/code/app/www/sites/default/settings.php.frep:/code/app/www/sites/default/settings.php" --overwrite
     chown drupal:drupal "/code/app/www/sites/default/settings.php"
 
-    if [ -e /code/app/var/nginxwebroot ] && [[ -z ${NO_COLLECT_STATIC} ]]; then
-        echo "Sync webroot for Nginx"
-        # Sync the webroot to a shared volume with Nginx
-        # but do not sync files which is already a shared Nginx volume
-        # containing public long term contributions
-        rsync -a --delete --exclude files/ /code/app/www/ /code/app/var/nginxwebroot/
-    fi
 
     # add shortcuts to some binaries on the project if they do not exists
     if [[ ! -L "$PROJECT_DIR/bin/composerinstall" ]];then
@@ -204,7 +197,16 @@ configure() {
     fi
 
     # add shortcut from /code/app/www/sites/default/files to /code/app/var/public
+    # do it before the sync for nginx
     check_public_files_symlink
+
+    if [ -e /code/app/var/nginxwebroot ] && [[ -z ${NO_COLLECT_STATIC} ]]; then
+        echo "Sync webroot for Nginx"
+        # Sync the webroot to a shared volume with Nginx
+        # but do not sync files which is already a shared Nginx volume
+        # containing public long term contributions -- except we need the files directory link, just not the content --
+        rsync -a --delete --exclude files/ /code/app/www/ /code/app/var/nginxwebroot/
+    fi
 }
 
 #  services_setup: when image run in daemon mode: pre start setup
