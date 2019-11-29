@@ -117,7 +117,7 @@ cops_drupal_docker_env_defaults: |-
   DATE_DEFAULT_TIMEZONE=Europe/Paris
   UPDATE_STATUS_MODULE=0
   DRUPAL_URI=http://{{ cops_drupal_hostname }}
-  DRUSH_EXTRA_ARGS='--uri="${DRUPAL_URI}"'
+  DRUSH_EXTRA_ARGS='--uri='${DRUPAL_URI}
 
   # settings
   PHP_MAX_WORKERS={{ cops_drupal_php_max_workers }}
