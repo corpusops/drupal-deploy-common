@@ -168,7 +168,7 @@ RUN bash -exc ': \
     && cd app && gosu ${APP_USER} ../init/sbin/composerinstall.sh ${nodev} --no-scripts && touch "${COMPOSER_INSTALLED_FILE}" && cd -\
     \
     && : "final cleanup" \
-    && ( rm -rvf /root/.cache/composer /home/*/.cache/composer ) || true \
+    && ( rm -rvf /root/.cache/composer /home/*/.cache/composer || true ) \
     '
 
 FROM base AS runner
