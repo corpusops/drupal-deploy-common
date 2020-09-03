@@ -56,10 +56,10 @@ RUN bash -c 'set -ex \
     && : "set correct timezone" \
     && ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone \
     '
-
+ARG HOST_USER_UID=1000
 RUN bash -c 'set -ex \
     && : "project user & workdir" \
-    && useradd -ms /bin/bash drupal --uid 1000 \
+    && useradd -ms /bin/bash drupal --uid ${HOST_USER_UID} \
       --home-dir /home/drupal \
     && chmod 2755 /home/drupal/ \
     && mkdir /home/drupal/.ssh \
