@@ -168,6 +168,8 @@ configure() {
     frep "/code/app/.env.dist.frep:/code/app/.env" --overwrite
     chown drupal:drupal "/code/app/.env"
     # regenerate drupal app/www/sites/default/settings.php file
+    chmod u+w "/code/app/www/sites/default"
+    chmod u+w "/code/app/www/sites/default/settings.php"
     frep "/code/app/www/sites/default/settings.php.frep:/code/app/www/sites/default/settings.php" --overwrite
     chown drupal:drupal "/code/app/www/sites/default/settings.php"
 
