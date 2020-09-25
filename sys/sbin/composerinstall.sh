@@ -41,3 +41,6 @@ fi
     && $GOSU_CMD /usr/local/bin/composer clear-cache \
     && $GOSU_CMD /usr/local/bin/composer install  --prefer-dist --optimize-autoloader --no-interaction --verbose $@
 )
+# in case you need it one day:
+# && $GOSU_CMD sh -c 'COMPOSER_MEMORY_LIMIT=-1 php -d memory_limit=-1 /usr/local/bin/composer install --prefer-dist --optimize-autoloader --no-interaction --verbose $@'
+

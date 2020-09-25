@@ -334,7 +334,7 @@ check_public_files_symlink() {
                 echo "${YELLOW}+ ${SITES_DIR}/default/files is a real directory!${NORMAL}"
                 echo "${RED}++ moving it to ${SITES_DIR}/default/files.bak!${NORMAL}"
                 mv "${SITES_DIR}/default/files" "${SITES_DIR}/default/files.bak"
-                chown ${USER}:${GROUP} "${SITES_DIR}/default".bak
+                chown ${USER}:${GROUP} "${SITES_DIR}/default/files.bak"
             fi
         fi
     else
