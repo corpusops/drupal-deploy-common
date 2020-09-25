@@ -1,5 +1,6 @@
 ---
 cops_drupal_name: drupalinstance
+cops_drupal_profile_name: "{{cops_drupal_name}}"
 cops_drupal_project_module_name: "{{cops_drupal_name}}"
 cops_drupal_php_ver: "7.2"
 cops_drupal_deploy_env: "dev"
@@ -107,7 +108,7 @@ cops_drupal_docker_env_defaults: |-
 
   # Used in INSTALL ---------------
   DRUPAL_FORCE_INSTALL={{ cops_drupal_force_reinstall }}
-  PROFILE_NAME={{ cops_drupal_name }}
+  PROFILE_NAME={{ cops_drupal_profile_name }}
   SITE_NAME={{ cops_drupal_name }}
   SITE_MAIL=contact@{{ cops_drupal_hostname }}
   ADMIN_MAIL=sysadmin+{{ cops_drupal_name }}@{{ cops_drupal_hostname }}
