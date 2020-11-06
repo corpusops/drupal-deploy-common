@@ -111,10 +111,15 @@ RUN bash -c 'set -ex \
     && ln -sf $(pwd)/init/init.sh /init.sh \
     '
 
+ARG COMPOSER_VERSION=1.10.16
+ENV COMPOSER_VERSION=$COMPOSER_VERSION
 RUN bash -c 'set -ex \
     && : "install composer" \
-    && curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer \
-    && /usr/local/bin/composer --version  \
+    && curl -sS https://getcomposer.org/installer \
+       | php -- \
+         --install-dir=/usr/local/bin \
+         --filename=composer \
+         --version=${COMPOSER_VERSION} \
     '
 
 WORKDIR /code/app
