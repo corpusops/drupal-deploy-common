@@ -1,4 +1,11 @@
 #!/bin/bash
+
+# If you need more debug play with these variables:
+# export NO_STARTUP_LOGS=
+# export SHELL_DEBUG=1
+# export DEBUG=1
+# start by the first one, then try the others
+
 SDEBUG=${SDEBUG-}
 SCRIPTSDIR="$(dirname $(readlink -f "$0"))"
 cd "$SCRIPTSDIR/.."
@@ -324,11 +331,9 @@ pre() {
     services_setup
     fixperms
 }
-
 # only display startup logs when we start in daemon mode
 # and try to hide most when starting an (eventually interactive) shell.
 if [[ -n $NO_STARTUP_LOGS ]];then pre 2>/dev/null;else pre;fi
-
 if [[ -z "$@" ]]; then
     if ! ( echo $IMAGE_MODE | egrep -q "$IMAGE_MODES" );then
         log "Unknown image mode ($IMAGE_MODES): $IMAGE_MODE"
