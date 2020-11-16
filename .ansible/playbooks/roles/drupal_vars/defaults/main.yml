@@ -5,9 +5,11 @@ cops_drupal_project_module_name: "{{cops_drupal_name}}"
 cops_drupal_php_ver: "7.2"
 cops_drupal_deploy_env: "dev"
 cops_drupal_project_env: "DEV"
-cops_drupal_docker_image_tag: "{{cops_drupal_name}}"
+cops_drupal_docker_image: "{{cops_drupal_name}}"
 cops_drupal_default_docker_tag: "latest"
 cops_drupal_docker_tag: "{{cops_drupal_default_docker_tag}}"
+cops_drupal_varnish_docker_image: "{{cops_drupal_name}}-varnish"
+cops_drupal_varnish_docker_tag: "{{cops_drupal_default_docker_tag}}"
 cops_drupal_tld_domain: example.com
 cops_drupal_mail_domain: "{{ cops_drupal_tld_domain }}"
 cops_drupal_default_gitref: "master"
@@ -157,6 +159,8 @@ cops_drupal_dotenv: |-
   CI_COMMIT_SHA={{cops_drupal_gitref}}
   DRUPAL_IMAGE={{ cops_drupal_docker_image }}
   DRUPAL_IMAGE_VERSION={{cops_drupal_docker_tag}}
+  VARNISH_IMAGE={{ cops_drupal_varnish_docker_image }}
+  VARNISH_IMAGE_VERSION={{cops_drupal_varnish_docker_tag}}
   DRUPAL_ENV_NAME={{ cops_drupal_deploy_env }}
   APP_SECRET={{ cops_drupal_secret_key }}
 cops_drupal_dotenv_extra: ""
