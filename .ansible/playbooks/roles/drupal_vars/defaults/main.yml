@@ -65,10 +65,14 @@ cops_drupal_email_host_user: ''
 cops_drupal_email_host_password: ''
 cops_drupal_email_host_port: 1025
 cops_drupal_email_use_tls: 'no'
-cops_drupal_hosts_whitelist: "{{(
+cops_drupal_hosts_whitelist_cors: "'{{(
     [cops_drupal_hostname, '0.0.0.0', '.{0}'.format(cops_drupal_hostname)]+
     cops_drupal_alternate_hostnames
-  )|join(',')|replace('.','\.') }}"
+  )|join("','") }}'"
+cops_drupal_hosts_whitelist_security: "{{(
+    [cops_drupal_hostname, '0.0.0.0']+
+    cops_drupal_alternate_hostnames
+  )|join('|')|replace('.','\.') }}"
 cops_drupal_sentry_tags: ["env:{{cops_drupal_deploy_env}}"]
 cops_drupal_sentry_dsn: ''
 cops_drupal_admin_pass: ''
@@ -132,8 +136,8 @@ cops_drupal_docker_env_defaults: |-
   PHP_OPCACHE_ENABLED={{ cops_drupal_php_opcache_enabled }}
   PROJECT_ENV={{ cops_drupal_project_env }}
   # cors
-  DRUPAL__CORS_ORIGIN_WHITELIST={{cops_drupal_hosts_whitelist}}
-  DRUPAL__ALLOWED_HOSTS={{cops_drupal_hosts_whitelist}}
+  DRUPAL__CORS_ORIGIN_WHITELIST={{cops_drupal_hosts_whitelist_cors}}
+  DRUPAL__ALLOWED_HOSTS={{cops_drupal_hosts_whitelist_security}}
   # env target
   DRUPAL__DEPLOY_ENV={{cops_drupal_deploy_env}}
   DRUPAL__PROJECT_ENV={{cops_drupal_project_env}}
