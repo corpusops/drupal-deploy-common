@@ -68,7 +68,7 @@ cops_drupal_email_use_tls: 'no'
 #cops_drupal_hosts_whitelist_cors: "'{{(
 #    [cops_drupal_hostname, '0.0.0.0', '.{0}'.format(cops_drupal_hostname)]+
 #    cops_drupal_alternate_hostnames
-#  )|join("','") }}'" <-- "','" il y a des \ à mettre, à tester
+#  )|join("','") }}'" FIXME: "','" il y a des antislash a mettre, a tester
 cops_drupal_hosts_whitelist_security: "{{(
     [cops_drupal_hostname, '0.0.0.0']+
     cops_drupal_alternate_hostnames
