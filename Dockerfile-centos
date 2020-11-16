@@ -151,6 +151,9 @@ RUN bash -c 'set -ex \
     && rm -f /etc/php-fpm.d/www.conf \
   '
 
+# Fix crond & pam error in RedHat "FAILED to open PAM security session (Cannot make/remove an entry for the specified session)"
+RUN sed -i '/session    required   pam_loginuid.so/c\#session    required   pam_loginuid.so' /etc/pam.d/crond
+
 # image will drop privileges itself using gosu
 ENTRYPOINT []
 CMD "/init.sh"
