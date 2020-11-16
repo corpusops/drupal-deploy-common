@@ -68,7 +68,7 @@ cops_drupal_email_use_tls: 'no'
 cops_drupal_hosts_whitelist: "{{(
     [cops_drupal_hostname, '0.0.0.0', '.{0}'.format(cops_drupal_hostname)]+
     cops_drupal_alternate_hostnames
-  )|join(',')|('.','\.') }}"
+  )|join(',')|replace('.','\.') }}"
 cops_drupal_sentry_tags: ["env:{{cops_drupal_deploy_env}}"]
 cops_drupal_sentry_dsn: ''
 cops_drupal_admin_pass: ''
