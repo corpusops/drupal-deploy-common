@@ -33,7 +33,7 @@ cops_drupal_nginx_avoid_ssl_rewrite: ""
 # varnish related
 cops_drupal_use_varnish: false
 cops_drupal_varnish_memory_size: "2048MB"
-cops_drupal_varnish_hide_cache_headers: true
+cops_drupal_varnish_hide_cache_headers: "1"
 cops_drupal_varnish_backends: "nginx"
 cops_drupal_varnish_no_cache_cookie: "NO_CACHE"
 cops_drupal_varnish_no_cache_url: ""
