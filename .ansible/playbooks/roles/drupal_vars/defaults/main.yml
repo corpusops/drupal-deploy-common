@@ -30,8 +30,18 @@ cops_drupal_db_name: "{{cops_drupal_name}}"
 cops_drupal_devmode: False
 cops_drupal_build_args: "--no-cache drupal cron"
 cops_drupal_nginx_avoid_ssl_rewrite: ""
+# varnish related
+cops_drupal_use_varnish: false
+cops_drupal_varnish_memory_size: "2048MB"
+cops_drupal_varnish_hide_cache_headers: true
+cops_drupal_varnish_backends: "nginx"
+cops_drupal_varnish_no_cache_cookie: "NO_CACHE"
+cops_drupal_varnish_no_cache_url: ""
+cops_drupal_varnish_ttl_static: "3h"
+cops_drupal_varnish_ttl_static_for_browser: "86400"
+cops_drupal_varnish_nginx_shared_secret: "change_me_please"
 # backup could be remove in a-while when we have redeployed it everywhere
-cops_drupal_restarted_services_default: "db drupal nginx backup cron"
+cops_drupal_restarted_services_default: "db drupal nginx backup cron{% if cops_drupal_use_varnish %} varnish{%endif%}"
 cops_drupal_restarted_services: "{{cops_drupal_restarted_services_default}}"
 cops_drupal_purge_volumes: []
 cops_drupal_sshargs: >-
@@ -113,7 +123,19 @@ cops_drupal_docker_env_defaults: |-
   ABSOLUTE_URL_PORT=
   NGINX_SERVERNAME={{ cops_drupal_hostname }}
   NGINX_SERVER_ALIASES="{{ cops_drupal_alternate_hostnames | join(' ')}}"
-
+  {% if cops_drupal_use_varnish %}
+  # Varnish
+  VARNISH__HTTP_PROTECT_USER=
+  VARNISH__HTTP_PROTECT_PASSWORD=
+  VARNISH_MEMORY_SIZE={{ cops_drupal_varnish_memory_size }}
+  VARNISH_HIDE_X_CACHE_TAGS={{ cops_drupal_varnish_hide_cache_headers }}
+  VARNISH_BACKENDS={{ cops_drupal_varnish_backends }}
+  VARNISH_NO_CACHE_COOKIE={{ cops_drupal_varnish_no_cache_cookie }}
+  VARNISH_NO_CACHE_URL={{ cops_drupal_varnish_no_cache_url }}
+  VARNISH_TTL_STATIC={{ cops_drupal_varnish_ttl_static }}
+  VARNISH_TTL_STATIC_BROWSER={{ cops_drupal_varnish_ttl_static_for_browser }}
+  VARNISH_NGINX_SHARED_SECRET={{ cops_drupal_varnish_nginx_shared_secret }}
+  {% endif %}
   # Used in INSTALL ---------------
   DRUPAL_FORCE_INSTALL={{ cops_drupal_force_reinstall }}
   PROFILE_NAME={{ cops_drupal_profile_name }}
