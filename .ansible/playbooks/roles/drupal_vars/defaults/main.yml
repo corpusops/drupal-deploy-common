@@ -2,7 +2,6 @@
 cops_drupal_name: drupalinstance
 cops_drupal_profile_name: "{{cops_drupal_name}}"
 cops_drupal_project_module_name: "{{cops_drupal_name}}"
-cops_drupal_php_ver: "7.2"
 cops_drupal_deploy_env: "dev"
 cops_drupal_project_env: "DEV"
 cops_drupal_docker_image: "{{cops_drupal_name}}"
@@ -177,7 +176,6 @@ cops_drupal_docker_env_defaults: |-
 # free form for params inside dockerenv
 cops_drupal_dotenv: |-
   APP_TYPE=drupal
-  DRUPAL_PHP_VER={{ cops_drupal_php_ver }}
   DRUPAL_NAME={{ cops_drupal_name }}
   COMPOSE_PROJECT_NAME={{cops_drupal_composename}}
   CONTROL_COMPOSE_FIlES={{cops_drupal_compose_files|join(' ')}}
