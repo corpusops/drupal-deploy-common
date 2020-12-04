@@ -162,7 +162,7 @@ configure() {
         if [ -d $i ];then cp -rfnv $i/* etc >&2;fi
     done
     # install with frep any template file to / (eg: logrotate & cron file)
-    for i in $(find etc -name "*.frep" -type f 2>/dev/null);do
+    for i in $(find etc -name "*.frep" -type f |grep -v 'varnish' 2>/dev/null);do
         log $i
         d="$(dirname "$i")/$(basename "$i" .frep)" \
             && di="/$(dirname $d)" \
