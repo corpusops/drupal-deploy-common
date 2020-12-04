@@ -112,14 +112,15 @@ RUN bash -c 'set -ex \
     '
 
 ARG COMPOSER_VERSION=1.10.16
+ARG COMPOSER_DOWNLOAD_URL=https://getcomposer.org
 ENV COMPOSER_VERSION=$COMPOSER_VERSION
 RUN bash -c 'set -ex \
     && : "install composer" \
-    && curl -sS https://getcomposer.org/installer \
-       | php -- \
-         --install-dir=/usr/local/bin \
-         --filename=composer \
-         --version=${COMPOSER_VERSION} \
+    && if (echo $COMPOSER_VERSION|egrep -vq "\." );then u="$COMPOSER_DOWNLOAD_URL/composer-${COMPOSER_VERSION}.phar";\
+       else u="$COMPOSER_DOWNLOAD_URL/download/${COMPOSER_VERSION}/composer.phar";fi\
+    && curl -sS "$u" -o /usr/local/bin/composer \
+    && chmod +x /usr/local/bin/composer \
+    && /usr/local/bin/composer --version  \
     '
 
 WORKDIR /code/app
