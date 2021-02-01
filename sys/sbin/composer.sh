@@ -60,5 +60,7 @@ done
 (
     cd $PROJECT_DIR \
     && $GOSU_CMD /usr/local/bin/composer clear-cache \
+    && $GOSU_CMD echo "afwully disabling tls, seems CentOS+TLS is bad for https://codeload.github.com" \
+    && $GOSU_CMD /usr/local/bin/composer config -g disable-tls true \
     && $GOSU_CMD /usr/local/bin/composer --verbose $@
 )
