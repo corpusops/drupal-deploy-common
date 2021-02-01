@@ -4,6 +4,7 @@ SCRIPTSDIR="$(dirname $(readlink -f "$0"))"
 SHELL_USER=${SHELL_USER-$(whoami)}
 COMPOSER_JSON_CANDIDATES=${COMPOSER_JSON_CANDIDATES:-app/composer.json composer.json}
 TOPDIR_CANDIDATES=${TOPDIR_CANDIDATES:-$SCRIPTSDIR/../.. $SCRIPTSDIR/../../../../ ../}
+DISABLE_COMPOSER_TLS=${DISABLE_COMPOSER_TLS-1}
 
 # detect root folder, either 4 levels under if called from common-glue
 # or 2 from project root
@@ -62,8 +63,10 @@ done
 (
     cd $PROJECT_DIR \
     && $GOSU_CMD /usr/local/bin/composer clear-cache \
-    && $GOSU_CMD echo "afwully disabling tls, seems CentOS+TLS is bad for https://codeload.github.com" \
-    && $GOSU_CMD /usr/local/bin/composer config -g disable-tls true \
+    && if [[ -n "$DISABLE_COMPOSER_TLS" ]];then \
+        echo "afwully disabling tls, seems CentOS+TLS is bad for https://codeload.github.com" \
+        && $GOSU_CMD /usr/local/bin/composer config -g disable-tls true; \
+    fi \
     && $GOSU_CMD sh -c 'COMPOSER_MEMORY_LIMIT=-1 php -d memory_limit=-1 \
         /usr/local/bin/composer install  --prefer-dist --optimize-autoloader --no-interaction --verbose $@'
 )
