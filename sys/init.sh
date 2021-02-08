@@ -334,7 +334,8 @@ pre() {
 }
 # only display startup logs when we start in daemon mode
 # and try to hide most when starting an (eventually interactive) shell.
-if [[ -n $NO_STARTUP_LOGS ]];then pre 2>/dev/null;else pre;fi
+if ! ( echo "$NO_STARTUP_LOGS" | egrep -iq "^(no?)?$" );then pre 2>/dev/null;else pre;fi
+
 if [[ -z "$@" ]]; then
     if ! ( echo $IMAGE_MODE | egrep -q "$IMAGE_MODES" );then
         log "Unknown image mode ($IMAGE_MODES): $IMAGE_MODE"
