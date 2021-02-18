@@ -67,6 +67,7 @@ NO_INSTALL=${NO_INSTALL-$DEFAULT_NO_INSTALL}
 NO_COLLECT_STATIC=${NO_COLLECT_STATIC-$DEFAULT_NO_COLLECT_STATIC}
 NO_IMAGE_SETUP="${NO_IMAGE_SETUP:-"1"}"
 FORCE_IMAGE_SETUP="${FORCE_IMAGE_SETUP:-"1"}"
+SKIP_SERVICES_SETUP="${SKIP_SERVICES_SETUP-}"
 IMAGE_SETUP_MODES="${IMAGE_SETUP_MODES:-"fg|phpfpm"}"
 
 FINDPERMS_PERMS_DIRS_CANDIDATES="${FINDPERMS_PERMS_DIRS_CANDIDATES:-"var/public var/private"}"
@@ -230,7 +231,7 @@ services_setup() {
             return 0
         fi
     else
-        if [[ -n $SDEBUG ]];then
+        if [[ -n $SKIP_SERVICES_SETUP ]];then
             log "Skip image setup"
             return 0
         fi
