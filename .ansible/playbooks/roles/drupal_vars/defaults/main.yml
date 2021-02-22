@@ -93,11 +93,11 @@ cops_drupal_php_opcache_enabled: "1"
 cops_drupal_docker_env_freeform: |-
   {{ cops_drupal_docker_env_defaults}}
   {{ cops_drupal_docker_env_extra}}
-cops_drupal_docker_env_defaults: |-
-  PROJECT_PACKAGE={{ cops_drupal_name }}
-  PROJECT_DIR=/code/app
+cops_drupal_docker_env_defaults: ""
 # free form for params inside dockerenv
 cops_drupal_dotenv_defaults: |-
+  PROJECT_PACKAGE={{ cops_drupal_name }}
+  PROJECT_DIR=/code/app
   APP_TYPE=drupal
   DRUPAL_NAME={{ cops_drupal_name }}
   COMPOSE_PROJECT_NAME={{cops_drupal_composename}}
