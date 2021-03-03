@@ -323,26 +323,31 @@ teleport_ms_privatedocs_dir: "/srv/projects/{{teleport_ms_project}}/data/private
 teleport_db_container: db
 teleport_docker_publiccontrib_dir: "/var/lib/docker/volumes/{{teleport_orig_composename}}_publiccontrib/_data"
 teleport_docker_private_dir: "/var/lib/docker/volumes/{{teleport_orig_composename}}_private/_data"
-teleport_docker_privatedocs_dir: "{{teleport_orig_wd}}/app/var/private/docs"
+teleport_docker_privatedocs_dir: "{{teleport_orig_wd}}/app/var/docs"
+teleport_docker_privatedocsold_dir: "{{teleport_orig_wd}}/app/var/private/docs"
 teleport_container_publiccontrib_dir: /code/app/var/public
 teleport_container_private_dir: /code/app/var/private
-teleport_container_privatedocs_dir: /code/app/var/private/docs
+teleport_container_privatedocs_dir: /code/app/var/docs
+teleport_container_privatedocsold_dir: /code/app/var/private/docs
 teleport_app_container: drupal
 teleport_paths_makinastates:
   origin_dump: "{{teleport_paths_ms_origin_dump}}"
   origin_publiccontrib: "{{teleport_ms_publiccontrib_dir}}"
   origin_private: "{{teleport_ms_private_dir}}"
   origin_privatedocs: "{{teleport_ms_privatedocs_dir}}"
+  origin_privatedocsold: "{{teleport_ms_privatedocs_dir}}"
 teleport_paths_default:
   origin_dump: "{{teleport_paths_origin_dump}}"
   origin_publiccontrib: "{{teleport_docker_publiccontrib_dir}}"
   origin_private: "{{teleport_docker_private_dir}}"
   origin_privatedocs: "{{teleport_docker_privatedocs_dir}}"
+  origin_privatedocsold: "{{teleport_docker_privatedocsold_dir}}"
 teleport_paths_common:
   dest_dump: "{{lookup('vars', 'teleport_paths_dest_dump_'+teleport_db_mode)}}"
   dest_publiccontrib: "{{teleport_container_publiccontrib_dir}}"
   dest_private: "{{teleport_container_private_dir}}"
   dest_privatedocs: "{{teleport_container_privatedocs_dir}}"
+  dest_privatedocsold: "{{teleport_container_privatedocsold_dir}}"
   dump_file: dump.gz
 teleport_paths: "{{teleport_paths_common|combine(lookup('vars', 'teleport_paths_'+_teleport_mode))}}"
 teleport_paths_origin_dump_file: "{{teleport_paths.origin_dump}}/{{teleport_paths.dump_file}}"
@@ -367,6 +372,10 @@ teleport_sync_db_files_default:
     # only_if_exists: true
 teleport_private_extra_rsync_extra_args: "--exclude docs"
 teleport_sync_files_default:
+  privatedocsold:
+    origin_path: "{{teleport_paths.origin_privatedocsold}}/"
+    container: "{{teleport_app_container}}"
+    container_path: "{{teleport_paths.dest_privatedocsold}}/"
   privatedocs:
     origin_path: "{{teleport_paths.origin_privatedocs}}/"
     container: "{{teleport_app_container}}"
