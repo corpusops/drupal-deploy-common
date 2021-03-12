@@ -148,6 +148,13 @@ _shell() {
     exec gosu $user sh $( if [[ -z "$bargs" ]];then echo "-i";fi ) -c "$bargs"
 }
 
+fix_settings_perms() {
+    if [ -e /code/app/www/sites/default/settings.php ];then
+        chown drupal:drupal "/code/app/www/sites/default/settings.php"
+        chmod u+w "/code/app/www/sites/default/settings.php"
+    fi
+}
+
 #  configure: generate configs from template at runtime
 configure() {
     if [[ -n $NO_CONFIGURE ]];then return 0;fi
@@ -178,9 +185,9 @@ configure() {
     chown drupal:drupal "/code/app/.env"
     # regenerate drupal app/www/sites/default/settings.php file
     chmod u+w "/code/app/www/sites/default"
+    fix_settings_perms
     frep "/code/app/www/sites/default/settings.php.frep:/code/app/www/sites/default/settings.php" --overwrite
-    chown drupal:drupal "/code/app/www/sites/default/settings.php"
-    chmod u+w "/code/app/www/sites/default/settings.php"
+    fix_settings_perms
 
 
     # add shortcuts to some binaries on the project if they do not exists
