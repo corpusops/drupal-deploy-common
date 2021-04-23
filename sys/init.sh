@@ -13,6 +13,13 @@ TOPDIR=$(pwd)
 
 # now be in stop-on-error mode
 set -e
+
+# export back the gateway ip as a host if ip is available in container
+if ( ip -4 route list match 0/0 &>/dev/null );then
+    ip -4 route list match 0/0 \
+        | awk '{print $3" host.docker.internal"}' >> /etc/hosts
+fi
+
 # load locales & default env
 # load this first as it resets $PATH
 for i in /etc/environment /etc/default/locale;do
@@ -37,12 +44,6 @@ fi
 export PROJECT_DIR
 # activate shell debug if SDEBUG is set
 if [[ -n $SDEBUG ]];then set -x;fi
-
-# export back the gateway ip as a host if ip is available in container
-if ( ip -4 route list match 0/0 &>/dev/null );then
-    ip -4 route list match 0/0 \
-        | awk '{print $3" host.docker.internal"}' >> /etc/hosts
-fi
 
 DEFAULT_IMAGE_MODE=phpfpm
 
