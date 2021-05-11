@@ -177,9 +177,9 @@ configure() {
     chown drupal:drupal "/code/app/.env"
     # regenerate drupal app/www/sites/default/settings.php file
     chmod u+w "/code/app/www/sites/default"
-    chmod u+w "/code/app/www/sites/default/settings.php"
     frep "/code/app/www/sites/default/settings.php.frep:/code/app/www/sites/default/settings.php" --overwrite
     chown drupal:drupal "/code/app/www/sites/default/settings.php"
+    chmod u+w "/code/app/www/sites/default/settings.php"
 
 
     # add shortcuts to some binaries on the project if they do not exists
