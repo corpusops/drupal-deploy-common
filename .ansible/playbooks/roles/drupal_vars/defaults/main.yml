@@ -94,6 +94,22 @@ cops_drupal_docker_env_freeform: |-
   {{ cops_drupal_docker_env_defaults}}
   {{ cops_drupal_docker_env_extra}}
 cops_drupal_docker_env_defaults: |-
+  PROJECT_PACKAGE={{ cops_drupal_name }}
+  PROJECT_DIR=/code/app
+# free form for params inside dockerenv
+cops_drupal_dotenv_defaults: |-
+  APP_TYPE=drupal
+  DRUPAL_NAME={{ cops_drupal_name }}
+  COMPOSE_PROJECT_NAME={{cops_drupal_composename}}
+  CONTROL_COMPOSE_FILES={{cops_drupal_compose_files|join(' ')}}
+  CI_COMMIT_SHA={{cops_drupal_gitref}}
+  DRUPAL_IMAGE={{ cops_drupal_docker_image }}
+  DRUPAL_IMAGE_VERSION={{cops_drupal_docker_tag}}
+  VARNISH_IMAGE={{ cops_drupal_varnish_docker_image }}
+  VARNISH_IMAGE_VERSION={{cops_drupal_varnish_docker_tag}}
+  DRUPAL_ENV_NAME={{ cops_drupal_deploy_env }}
+  APP_SECRET={{ cops_drupal_secret_key }}
+  # docker variables
   # This need to be changed in production
   SECRET_KEY={{ cops_drupal_secret_key }}
   # db
@@ -112,8 +128,6 @@ cops_drupal_docker_env_defaults: |-
   DATABASE_HOST={{ cops_drupal_db_host }}
   DATABASE_PORT={{ cops_drupal_db_port }}
   DATABASE_PREFIX={{ cops_drupal_db_prefix }}
-  PROJECT_PACKAGE={{ cops_drupal_name }}
-  PROJECT_DIR=/code/app
   DRUPAL_NAME={{ cops_drupal_name }}
   COOKIE_DOMAIN={{ cops_drupal_hostname }}
   ABSOLUTE_URL_SCHEME=https
@@ -148,7 +162,6 @@ cops_drupal_docker_env_defaults: |-
   UPDATE_STATUS_MODULE=0
   DRUPAL_URI=https://{{ cops_drupal_hostname }}
   DRUSH_EXTRA_ARGS= --uri=https://{{ cops_drupal_hostname }}
-
   # settings
   PHP_MAX_WORKERS={{ cops_drupal_php_max_workers }}
   PHP_MAX_SPARE_WORKERS={{ cops_drupal_php_max_spare_workers }}
@@ -173,19 +186,7 @@ cops_drupal_docker_env_defaults: |-
   MAILCATCHER_PASSWORD={{cops_drupal_mailcatcher_password}}
   DBS_DBNAMES={{cops_drupal_backuped_dbs}}
   NO_FORCE_SSL={{ cops_drupal_nginx_avoid_ssl_rewrite }}
-# free form for params inside dockerenv
-cops_drupal_dotenv: |-
-  APP_TYPE=drupal
-  DRUPAL_NAME={{ cops_drupal_name }}
-  COMPOSE_PROJECT_NAME={{cops_drupal_composename}}
-  CONTROL_COMPOSE_FILES={{cops_drupal_compose_files|join(' ')}}
-  CI_COMMIT_SHA={{cops_drupal_gitref}}
-  DRUPAL_IMAGE={{ cops_drupal_docker_image }}
-  DRUPAL_IMAGE_VERSION={{cops_drupal_docker_tag}}
-  VARNISH_IMAGE={{ cops_drupal_varnish_docker_image }}
-  VARNISH_IMAGE_VERSION={{cops_drupal_varnish_docker_tag}}
-  DRUPAL_ENV_NAME={{ cops_drupal_deploy_env }}
-  APP_SECRET={{ cops_drupal_secret_key }}
+cops_drupal_dotenv: "{{cops_drupal_dotenv_defaults}}"
 cops_drupal_dotenv_extra: ""
 # free form for params inside dockerenv
 cops_drupal_docker_env_extra: ""
