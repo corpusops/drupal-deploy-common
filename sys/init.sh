@@ -182,7 +182,7 @@ fix_settings_perms() {
 
 call_drush() {
     ( cd $PROJECT_DIR \
-        && gosu $APP_USER php bin/drush -y "$@" )
+        && gosu $APP_USER bin/drush -y "$@" )
 }
 
 
@@ -299,13 +299,14 @@ services_setup() {
     while read vardef;do
         envvar="$(echo "$vardef" | awk -F= '{print $1}')"
         conf="${envvar//*${SETTINGS_KNOB}__/}"
-        section="${conf//___*/}"
-        section=${section,,}
-        i="${conf//*___/}"
-        section="${section//_DOT_/.}"
-        i="${i//_DOT_/.}"
-        var="${SETTINGS_KNOB}__${i^^}"
         val="$(eval 'echo ${'"$envvar"'}')"
+        #
+        section="${conf//___*/}"
+        section="${section//_DOT_/.}"
+        #
+        i="${conf//*___/}"
+        i="${i//_DOT_/.}"
+        #
         if [[ -n "$val" ]];then
             log "drush cset $section $i ***"
             call_drush cset "$section" "$i" "$val"
