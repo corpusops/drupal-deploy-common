@@ -47,8 +47,8 @@ if [[ -n $SDEBUG ]];then set -x;fi
 
 DEFAULT_IMAGE_MODE=phpfpm
 
-export IMAGE_MODE=${IMAGE_MODE:-${DEFAULT_IMAGE_MODE}}
 export SETTINGS_KNOB=${SETTINGS_KNOB:-DRUPAL_SETTINGS}
+export IMAGE_MODE=${IMAGE_MODE:-${DEFAULT_IMAGE_MODE}}
 IMAGE_MODES="(cron|nginx|fg|phpfpm|supervisor)"
 NO_START=${NO_START-}
 DEFAULT_NO_MIGRATE=
@@ -288,31 +288,21 @@ services_setup() {
         fi
     fi
 
+    if ! ( set_drupal_settings );then
+        log "failure to set settings, first round, maybe site is not installed yet"
+    else
+        export DRUPAL_SETTINGS_ENFORCEMENT_DONE=1
+    fi
     # Run install ?
     if [[ -z ${NO_INSTALL} ]];then
-        ( cd $PROJECT_DIR \
-            && gosu $APP_USER php bin/install.sh )
+        ( cd $PROJECT_DIR && gosu $APP_USER bin/install.sh )
     fi
-    # Setup Drupal settings
+    # Load Drupal settings from env
     # set smtp_settings smtp_host $val <- $DRUPAL_SETTINGS__SMTP_SETTINGS___SMTP_HOST
-    if [ "x${DO_DRUPAL_SETTINGS_ENFORCEMENT-}" = "x1" ];then
-    while read vardef;do
-        envvar="$(echo "$vardef" | awk -F= '{print $1}')"
-        conf="${envvar//*${SETTINGS_KNOB}__/}"
-        val="$(eval 'echo ${'"$envvar"'}')"
-        #
-        section="${conf//___*/}"
-        section="${section//_DOT_/.}"
-        #
-        i="${conf//*___/}"
-        i="${i//_DOT_/.}"
-        #
-        if [[ -n "$val" ]];then
-            log "drush cset $section $i ***"
-            call_drush cset "$section" "$i" "$val"
-        fi
-    done < <(env|egrep -v "^\s*#" | egrep "^(${SETTINGS_KNOB}__[a-zA-Z0-9_]+)=" )
+    if [[ -z "$DRUPAL_SETTINGS_ENFORCEMENT_DONE" ]];then
+        set_drupal_settings
     fi
+
     # Run any migration
     if [[ -z ${NO_MIGRATE} ]];then
         call_drush updb
@@ -376,6 +366,38 @@ do_phpfpm() {
         if [ ! -d /run/php-fpm ]; then mkdir /run/php-fpm; fi \
         && php-fpm -F -R
     )
+}
+
+set_drupal_settings() {
+    # Load Drupal settings from env
+    # set smtp_settings smtp_host $val <- $DRUPAL_SETTINGS__SMTP_SETTINGS___SMTP_HOST
+    if [ "x${DO_DRUPAL_SETTINGS_ENFORCEMENT-1}" != "x1" ];then
+        log "Skip drupal settings enforcement"
+    fi
+    # only set settings if we can reach them
+    if ! ( call_drush cget system.site>/dev/null );then
+        log "Cant see drupal settings (system.site), bailing out"
+        exit 1
+    fi
+    towait=
+    while read vardef;do
+        envvar="$(echo "$vardef" | awk -F= '{print $1}')"
+        conf="${envvar//*${SETTINGS_KNOB}__/}"
+        val="$(eval 'echo ${'"$envvar"'}')"
+        #
+        section="${conf//___*/}"
+        section="${section//_DOT_/.}"
+        #
+        i="${conf//*___/}"
+        i="${i//_DOT_/.}"
+        #
+        if [[ -n "$val" ]];then
+            log "drush cset $section $i ***"
+            call_drush cset "$section" "$i" "$val"&
+            towait=1
+        fi
+    done < <(env|egrep -v "^\s*#" | egrep "^(${SETTINGS_KNOB}__[a-zA-Z0-9_]+)=" )
+    if [[ -n "$towait" ]];then wait;fi
 }
 
 if ( echo $1 | egrep -q -- "--help|-h|help" );then
