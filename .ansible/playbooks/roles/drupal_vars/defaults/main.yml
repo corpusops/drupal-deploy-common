@@ -151,7 +151,7 @@ cops_drupal_dotenv_defaults: |-
   ABSOLUTE_URL_DOMAIN_ESCAPE={{ cops_drupal_hostname.replace('.','\.') }}
   ABSOLUTE_URL_PORT=
   NGINX_SERVERNAME={{ cops_drupal_hostname }}
-  NGINX_SERVER_ALIASES="{{ cops_drupal_alternate_hostnames | join(' ')}}"
+  NGINX_SERVER_ALIASES={{ cops_drupal_alternate_hostnames | join(' ')}}
   {% if cops_drupal_use_varnish %}
   # Varnish
   VARNISH__HTTP_PROTECT_USER=
