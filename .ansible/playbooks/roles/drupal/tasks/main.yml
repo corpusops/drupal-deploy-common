@@ -62,6 +62,29 @@
 - shell: |
     set -ex
     cd "{{cops_drupal_dir}}"
+    {% for i in cops_drupal_started_services.split() %}
+    ret=
+    for i in $(seq 30);do
+      {{cops_drupal_dc}} up -d --no-deps --remove-orphans {{i}}
+      ret=$?
+      if [ "x$ret" = "x0" ];then break;fi
+      sleep 1
+    done
+    if [ "x$ret" != "x0" ];then echo "{{i}}: failed start";exit 1;fi
+    {% endfor %}
+- shell: |
+    set -ex
+    cd "{{cops_drupal_dir}}"
+    {% for i in cops_drupal_started_services.split()|reverse %}
+    {{cops_drupal_dc}} ps --services --filter status=running | egrep -q "^{{i}}$"
+    {% endfor %}
+  retries: 60
+  delay: 1
+  register: started_docker_services
+  until: "started_docker_services.rc == 0"
+- shell: |
+    set -ex
+    cd "{{cops_drupal_dir}}"
     {% for i in cops_drupal_restarted_services.split() %}
     ret=
     for i in $(seq 30);do
