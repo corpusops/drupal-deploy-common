@@ -48,7 +48,9 @@ cops_drupal_varnish_ttl_static: "3h"
 cops_drupal_varnish_ttl_static_for_browser: "86400"
 cops_drupal_varnish_nginx_shared_secret: "change_me_please"
 # backup could be remove in a-while when we have redeployed it everywhere
-cops_drupal_restarted_services_default: "db drupal nginx backup cron{% if cops_drupal_use_varnish %} varnish{%endif%}"
+cops_drupal_started_services_default: "db backup"
+cops_drupal_started_services: "{{cops_drupal_started_services_default}}"
+cops_drupal_restarted_services_default: "drupal cron{% if cops_drupal_use_varnish %} varnish{%endif%} nginx"
 cops_drupal_restarted_services: "{{cops_drupal_restarted_services_default}}"
 cops_drupal_purge_volumes: []
 cops_drupal_sshargs: >-
@@ -202,12 +204,12 @@ cops_drupal_dotenv_defaults: |-
   MAILCATCHER_PASSWORD={{cops_drupal_mailcatcher_password}}
   DBS_DBNAMES={{cops_drupal_backuped_dbs}}
   NO_FORCE_SSL={{ cops_drupal_nginx_avoid_ssl_rewrite }}
-  DRUPAL_SETTINGS__system_DOT_mail___interface_DOT_default="{{cops_drupal_mail_interface}}"
-  DRUPAL_SETTINGS__smtp_DOT_settings___smtp_host="{{cops_drupal_smtp_host}}"
-  DRUPAL_SETTINGS__smtp_DOT_settings___smtp_port="{{cops_drupal_smtp_port}}"
-  DRUPAL_SETTINGS__smtp_DOT_settings___smtp_protocol="{{cops_drupal_smtp_protocol}}"
-  DRUPAL_SETTINGS__smtp_DOT_settings___smtp_username="{{cops_drupal_smtp_username}}"
-  DRUPAL_SETTINGS__smtp_DOT_settings___smtp_password="{{cops_drupal_smtp_password}}"
+  DRUPAL_SETTINGS__system_DOT_mail___interface_DOT_default={{cops_drupal_mail_interface}}
+  DRUPAL_SETTINGS__smtp_DOT_settings___smtp_host={{cops_drupal_smtp_host}}
+  DRUPAL_SETTINGS__smtp_DOT_settings___smtp_port=raw:::{{cops_drupal_smtp_port}}
+  DRUPAL_SETTINGS__smtp_DOT_settings___smtp_protocol={{cops_drupal_smtp_protocol}}
+  DRUPAL_SETTINGS__smtp_DOT_settings___smtp_username={{cops_drupal_smtp_username}}
+  DRUPAL_SETTINGS__smtp_DOT_settings___smtp_password={{cops_drupal_smtp_password}}
   DRUPAL_SETTINGS__smtp_DOT_settings___smtp_autotls={{"{0}".format(cops_drupal_smtp_autotls)|lower}}
 cops_drupal_mail_interface: 'SMTPMailSystem'
 cops_drupal_dotenv: "{{cops_drupal_dotenv_defaults}}"
