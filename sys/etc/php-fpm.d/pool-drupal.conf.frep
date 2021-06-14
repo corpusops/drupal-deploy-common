@@ -432,7 +432,7 @@ slowlog = /var/log/php-fpm/www-slow.log
 ;php_value[soap.wsdl_cache_dir]  = /var/lib/php/wsdlcache
 ;php_value[opcache.file_cache]  = /var/lib/php/opcache
 
-php_admin_value[open_basedir] = "/code/app:/tmp:"
+php_admin_value[open_basedir] = "/code/data:/code/app:/tmp:"
 
 php_value[include_path] = ".:..:/code/app/src"
 
