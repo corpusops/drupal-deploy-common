@@ -2,7 +2,13 @@
 cops_drupal_name: drupalinstance
 cops_drupal_profile_name: "{{cops_drupal_name}}"
 cops_drupal_project_module_name: "{{cops_drupal_name}}"
-cops_drupal_deploy_env: "dev"
+cops_drupal_branch_envs: {}
+cops_drupal_default_deploy_env: prod
+cops_drupal_deploy_env: "{{ (
+  cops_drupal_gitref in [cops_drupal_default_gitref, cops_drupal_default_docker_tag]
+    and cops_drupal_default_deploy_env
+    or  cops_drupal_branch_envs.get(cops_drupal_gitref, cops_drupal_default_deploy_env))}}"
+cops_drupal_docker_tag: "{{cops_drupal_gitref.replace('master', cops_drupal_default_docker_tag)}}"
 cops_drupal_project_env: "DEV"
 cops_drupal_docker_image: "{{cops_drupal_name}}"
 cops_drupal_default_docker_tag: "latest"
@@ -18,7 +24,10 @@ cops_drupal_hostname: "{{cops_drupal_deploy_env}}-{{cops_drupal_name}}.{{cops_dr
 cops_drupal_alternate_hostnames: [".{{cops_drupal_tld_domain}}"]
 cops_drupal_secret_key: "SuperSecret"
 cops_drupal_gateway: "{{ ansible_default_ipv4.address}}"
-cops_drupal_composename: "{{cops_drupal_name}}"
+cops_drupal_devmode: "{{ansible_connection|default('ssh') in ['local']}}"
+cops_drupal_composename: "{{(cops_drupal_devmode and
+  (teleport_wd|copsf_basename) or
+  cops_drupal_name)}}"
 cops_drupal_backuped_dbs: all
 cops_drupal_db_prefix: ""
 cops_drupal_db_host: "db"
@@ -26,7 +35,6 @@ cops_drupal_db_port: "5432"
 cops_drupal_db_user: "secretJFCxdffffwPH9R9jIi"
 cops_drupal_db_password: "secrdet44ff4gzQNe3c885ttgJ"
 cops_drupal_db_name: "{{cops_drupal_name}}"
-cops_drupal_devmode: False
 cops_drupal_build_args: "--no-cache drupal cron"
 cops_drupal_nginx_avoid_ssl_rewrite: ""
 # varnish related
@@ -55,11 +63,19 @@ cops_drupal_sshargs: >-
   {{ hostvars[inventory_hostname].ansible_ssh_common_args | default('') }}
   {{ hostvars[inventory_hostname].ansible_ssh_extra_args | default('') }}
   {% endif %}
+  {% if((cops_drupal_force_sync_ssh_user) or
+        (cops_drupal_sync_ssh_user and (cops_drupal_force_sync_ssh_user == True))
+    )%}
+  {% set user = cops_drupal_sync_ssh_user or ansible_user or '' %}
+  {% if user %}-l {{user}}{% endif %}
+  {% endif %}
 cops_drupal_build: false
 cops_drupal_pull: true
 cops_drupal_registries: []
 #- {registry: registry.foo.net, username: foo, password: bar}
-cops_drupal_compose_files: [docker-compose.yml, docker-compose-prod.yml]
+cops_drupal_compose_files_prod: [docker-compose.yml, docker-compose-prod.yml]
+cops_drupal_compose_files_dev: [docker-compose.yml, docker-compose-dev.yml]
+cops_drupal_compose_files: "{{(cops_drupal_devmode and cops_drupal_compose_files_dev or cops_drupal_compose_files_prod)}}"
 cops_drupal_dc:
   docker-compose {% for i in cops_drupal_compose_files %} -f {{i}}{% endfor %}
   -p "{{cops_drupal_composename}}"
@@ -68,12 +84,12 @@ cops_drupal_default_from_email: noreply@{{cops_drupal_hostname}}
 cops_drupal_server_email: "{{cops_drupal_default_from_email}}"
 cops_drupal_mailcatcher_user: mailcatcher
 cops_drupal_mailcatcher_password: mailcatcher
-cops_drupal_server_email: "{{cops_drupal_default_from_email}}"
-cops_drupal_email_server: mailcatcher
-cops_drupal_email_host_user: ''
-cops_drupal_email_host_password: ''
-cops_drupal_email_host_port: 1025
-cops_drupal_email_use_tls: 'no'
+cops_drupal_smtp_host: 'mailcatcher'
+cops_drupal_smtp_port: '1025'
+cops_drupal_smtp_protocol: 'standard'
+cops_drupal_smtp_autotls: 'true'
+cops_drupal_smtp_username: ''
+cops_drupal_smtp_password: ''
 #cops_drupal_hosts_whitelist_cors: "'{{(
 #    [cops_drupal_hostname, '0.0.0.0', '.{0}'.format(cops_drupal_hostname)]+
 #    cops_drupal_alternate_hostnames
@@ -202,3 +218,310 @@ cops_drupal_code_rsync_opts: [
     "--exclude", ".env",
     "--exclude", ".vscode",
     "--exclude", "docker.env"]
+cops_drupal_backup_postgresql: "{{'5432' == '{0}'.format(cops_drupal_db_port)}}"
+cops_drupal_backup_paths_to_backup:
+- "{{cops_drupal_dir}}"
+cops_drupal_backup_docker_volumes: [mediafiles]
+cops_drupal_backup_docker_volumes_: |-
+  {% set res = [] %}
+  {% for i in cops_drupal_backup_docker_volumes %}
+  {% set  _ = res.append('_'.join([cops_drupal_composename, i])) %}
+  {% endfor %}
+  {{ res | to_json }}
+cops_drupal_backup_pgdump_urls:
+- name: "{{cops_drupal_db_name}}"
+  url: "postgres://{{
+      cops_drupal_db_user}}:{{cops_drupal_db_password}}@{{
+        cops_drupal_db_host}}:{{cops_drupal_db_port}}/{{
+          cops_drupal_db_name}}"
+  docker_dir: "{{cops_drupal_dir}}"
+  docker_service: backup
+  docker_compose: "{{cops_drupal_dc}}"
+cops_drupal_sync_theme_contents_front: |-
+  {% set res = {} %}
+  {% set _ = res.update({
+    "{0}/{1}".format(cops_drupal_front_dir, '/static/dist/'): {},
+    "{0}/{1}".format(cops_drupal_front_dir, '/static/js/'): {},
+    "{0}/{1}".format(cops_drupal_front_dir, '/static/css/'): {},
+    "{0}/{1}".format(cops_drupal_front_dir, '/static/styles/'): {},
+    "{0}/{1}".format(cops_drupal_front_dir, '/static/scripts/'): {},
+  }) %}
+  {{ res | to_json }}
+cops_drupal_sync_theme_contents_webpack: |-
+  {% set res = {} %}
+  {% set _ = res.update({
+    "{0}/{1}".format(cops_drupal_front_dir, '/webpack-stats.json'): {},
+    'webpack-stats.json': {},
+  }) %}
+  {% set _ = res.update(cops_drupal_sync_theme_contents_front) %}
+  {{ res | to_json }}
+cops_drupal_sync_theme_contents: {}
+#
+# teleport vars (duplicate environment to another)
+#
+teleport_sshcmd: ssh
+teleport_rsynccmd: rsync
+teleport_mode: default
+# handle retrocompatibility within teleport modes
+teleport_modes_mapper: {standard: default}
+_teleport_mode: "{{teleport_modes_mapper.get(teleport_mode, teleport_mode)}}"
+teleport_reset_perms: true
+cops_drupal_generic_db_mode: postgres
+teleport_db_mode: "{{cops_drupal_generic_db_mode}}"
+teleport_ms_project: "{{cops_drupal_name}}"
+teleport_services: [cron, "{{teleport_app_container}}", nginx]
+teleport_stop_services: "{{teleport_services}}"
+teleport_restart_services: "{{teleport_services}}"
+# teleport_mode: default|makinastates
+# teleport_origin: <origin from where we restore>
+# teleport_destination: <destination to restore>
+teleport_wd: "{{(
+  cops_drupal_devmode and
+  (playbook_dir|copsf_dirname|copsf_dirname) or
+  cops_drupal_dir)}}"
+teleport_orig_wd: "{{cops_drupal_dir}}"
+teleport_orig_composename: "{{cops_drupal_name}}"
+teleport_data_dir: "{{teleport_wd}}/local/nobackup/teleport"
+teleport_orig_data_dir: "{{teleport_orig_wd}}/local/nobackup/teleport"
+teleport_paths_dest_dump_mysql: "/var/lib/mysql/dbdumps"
+teleport_paths_dest_dump_postgres: "/var/lib/postgresql/data/dbdumps"
+teleport_paths_origin_dump: "{{teleport_orig_data_dir}}/dumps"
+teleport_paths_dump: "{{teleport_wd}}/dumps"
+teleport_paths_ms_origin_dump: "/srv/projects/{{teleport_ms_project}}/data/nobackup/teleport/dumps"
+teleport_ms_publiccontrib_dir: "/srv/projects/{{teleport_ms_project}}/data/sites/default/files"
+teleport_ms_private_dir: "/srv/projects/{{teleport_ms_project}}/data/private"
+teleport_ms_privatedocs_dir: "/srv/projects/{{teleport_ms_project}}/data/private"
+teleport_db_container: db
+teleport_docker_publiccontrib_dir: "/var/lib/docker/volumes/{{teleport_orig_composename}}_publiccontrib/_data"
+teleport_docker_private_dir: "/var/lib/docker/volumes/{{teleport_orig_composename}}_private/_data"
+teleport_docker_privatedocs_dir: "{{teleport_orig_wd}}/app/var/private/docs"
+teleport_container_publiccontrib_dir: /code/app/var/public
+teleport_container_private_dir: /code/app/var/private
+teleport_container_privatedocs_dir: /code/app/var/private/docs
+teleport_app_container: drupal
+teleport_paths_makinastates:
+  origin_dump: "{{teleport_paths_ms_origin_dump}}"
+  origin_publiccontrib: "{{teleport_ms_publiccontrib_dir}}"
+  origin_private: "{{teleport_ms_private_dir}}"
+  origin_privatedocs: "{{teleport_ms_privatedocs_dir}}"
+teleport_paths_default:
+  origin_dump: "{{teleport_paths_origin_dump}}"
+  origin_publiccontrib: "{{teleport_docker_publiccontrib_dir}}"
+  origin_private: "{{teleport_docker_private_dir}}"
+  origin_privatedocs: "{{teleport_docker_privatedocs_dir}}"
+teleport_paths_common:
+  dest_dump: "{{lookup('vars', 'teleport_paths_dest_dump_'+teleport_db_mode)}}"
+  dest_publiccontrib: "{{teleport_container_publiccontrib_dir}}"
+  dest_private: "{{teleport_container_private_dir}}"
+  dest_privatedocs: "{{teleport_container_privatedocs_dir}}"
+  dump_file: dump.gz
+teleport_paths: "{{teleport_paths_common|combine(lookup('vars', 'teleport_paths_'+_teleport_mode))}}"
+teleport_paths_origin_dump_file: "{{teleport_paths.origin_dump}}/{{teleport_paths.dump_file}}"
+teleport_paths_dest_dump_file: "{{teleport_paths.dest_dump}}/{{teleport_paths.dump_file}}"
+teleport_rsync_args: "-azv --delete --delete-after"
+teleport_rsync_extra_args: ""
+teleport_destination_ansible_host: "{{groups[teleport_destination][0]}}"
+teleport_origin_ansible_host: "{{groups[teleport_origin][0]}}"
+teleport_destination_host: "{{hostvars[teleport_destination_ansible_host]['ansible_host'] or teleport_destination_ansible_host}}"
+teleport_origin_host: "{{hostvars[teleport_origin_ansible_host].get('ansible_host', teleport_origin_ansible_host)}}"
+teleport_dc: "{{cops_drupal_dc}}"
+teleport_owner: "{{cops_drupal_medias_owner}}"
+teleport_group: "{{cops_drupal_medias_group}}"
+teleport_use_host: "{{ansible_distribution != 'MacOSX'}}"
+teleport_sync_db_files_default:
+  dump:
+    origin_path: "{{teleport_paths.origin_dump}}/"
+    container: "{{teleport_db_container}}"
+    container_path: "{{teleport_paths.dest_dump}}/"
+    # only_if_exists: true
+teleport_sync_files_default:
+  privatedocs:
+    origin_path: "{{teleport_paths.origin_privatedocs}}/"
+    container: "{{teleport_app_container}}"
+    container_path: "{{teleport_paths.dest_privatedocs}}/"
+  private:
+    origin_path: "{{teleport_paths.origin_private}}/"
+    container: "{{teleport_app_container}}"
+    container_path: "{{teleport_paths.dest_private}}/"
+    rsync_extra_args: "--exclude docs"
+  publiccontrib:
+    origin_path: "{{teleport_paths.origin_publiccontrib}}/"
+    container: "{{teleport_app_container}}"
+    container_path: "{{teleport_paths.dest_publiccontrib}}/"
+    # only_if_exists: true
+teleport_sync_db_files: "{{teleport_sync_db_files_default}}"
+teleport_sync_files: "{{teleport_sync_files_default}}"
+teleport_ssh_key_path: "{{teleport_wd}}/local/.ssh/deploy"
+teleport_ssh_origin_key_path: "{{(
+  teleport_ssh_key_path or
+    hostvars[groups[teleport_origin][0]].get('ansible_ssh_private_key_file', ''))}}"
+teleport_ssh_destination_key_path: "{{(
+  teleport_ssh_key_path or
+    hostvars[groups[teleport_destination][0]].get(
+      'ansible_ssh_private_key_file', ''))}}"
+teleport_sshkey_stripper: "-i [^ ]+"
+teleport_origin_sshargs_withoutkey: "{{teleport_origin_sshargs_default|regex_replace( teleport_sshkey_stripper, '')}}"
+teleport_destination_sshargs_withoutkey: "{{teleport_destination_sshargs_default|regex_replace( teleport_sshkey_stripper, '')}}"
+# as we connect not from bastion, dont use by default the key version one
+teleport_origin_sshargs: "{{teleport_origin_sshargs_withoutkey}}"
+teleport_sshargs: "{{teleport_origin_sshargs}}"
+teleport_destination_sshargs:  "{{teleport_destination_sshargs_withoutkey}}"
+teleport_origin_dump_scripts_postgres: |-
+  {% if not teleport_origin_db_is_docker %}
+  cd "{{teleport_paths.origin_dump}}"
+  {% if teleport_origin_db_password %}PGPASSWORD="{{teleport_origin_db_password}}"{% endif %} \
+  pg_dump \
+    --host="{{teleport_origin_db_host}}" \
+    --port="{{teleport_origin_db_port}}" \
+    --username="{{teleport_origin_db_user}}" \
+    --dbname="{{teleport_origin_db_name}}" \
+    -Fc > {{teleport_paths.origin_dump}}/dump
+  {% else %}
+  cd "{{teleport_wd}}"
+  {{teleport_dc}} exec -T {{teleport_db_container}} pg_dump \
+    --username="{{teleport_origin_db_user}}" \
+    --dbname="{{teleport_origin_db_name}}" \
+    -Fc > {{teleport_paths.origin_dump}}/dump
+  {% endif %}
+teleport_origin_dump_script_compress: |-
+  gzip -c {{teleport_paths.origin_dump}}/dump \
+  > "{{teleport_paths_origin_dump_file}}"
+  rm -fv {{teleport_paths.origin_dump}}/dump
+teleport_origin_dump_script: |-
+  set -ex
+  {{lookup('vars', 'teleport_origin_dump_scripts_'+teleport_db_mode)}}
+  {{teleport_origin_dump_script_compress}}
+teleport_origin_db_host: "{{cops_drupal_db_host}}"
+teleport_origin_db_port: "{{cops_drupal_db_password}}"
+teleport_origin_db_user: "{{cops_drupal_db_user}}"
+teleport_origin_db_password: "{{cops_drupal_db_password}}"
+teleport_origin_db_name: "{{cops_drupal_db_name}}"
+## standard is for retrocompat
+teleport_origin_db_is_docker: "{{_teleport_mode in ['default', 'standard']}}"
+teleport_origin_db_dockername: "{{cops_drupal_name}}_db_1"
+teleport_db_encoding: 'UTF-8'
+teleport_pg_restore_drop_db: true
+cops_drupal_medias_owner: "1000"
+cops_drupal_medias_group: "1000"
+cops_drupal_force_sync_ssh_user: null
+cops_drupal_sync_ssh_user: ""
+teleport_origin_sshargs_default: >-
+  {% set h = groups[teleport_origin][0] %}
+  {% set k = teleport_ssh_origin_key_path%}
+  {% if k%}-o IdentityFile={{k}} -o IdentitiesOnly=yes{%endif%}
+  -o StrictHostKeyChecking=no
+  {% if (
+      hostvars[h].ansible_connection|default('ssh')
+     ) not in [ 'smart', 'local'] %}
+  {{ hostvars[h].ssh_args | default('') }}
+  {{ hostvars[h].ansible_ssh_args | default('') }}
+  {{ hostvars[h].ansible_ssh_common_args | default('') }}
+  {{ hostvars[h].ansible_ssh_extra_args | default('') }}
+  {% endif %}
+  {% if((cops_drupal_force_sync_ssh_user) or
+        (cops_drupal_sync_ssh_user and (cops_drupal_force_sync_ssh_user == True))
+    )%}
+  {% set user = cops_drupal_sync_ssh_user or ansible_user or '' %}
+  {% if user %}-l {{user}}{% endif %}
+  {% endif %}
+teleport_destination_sshargs_default: >-
+  {% set h = groups[teleport_destination][0] %}
+  {% set k = teleport_ssh_destination_key_path%}
+  -o StrictHostKeyChecking=no
+  {% if k%}-o IdentityFile={{k}} -o IdentitiesOnly=yes{%endif%}
+  {% if (
+      hostvars[h].ansible_connection|default('ssh')
+     ) not in [ 'smart', 'local'] %}
+  {{ hostvars[h].ssh_args | default('') }}
+  {{ hostvars[h].ansible_ssh_args | default('') }}
+  {{ hostvars[h].ansible_ssh_common_args | default('') }}
+  {{ hostvars[h].ansible_ssh_extra_args | default('') }}
+  {% endif %}
+  {% if((cops_drupal_force_sync_ssh_user) or
+        (cops_drupal_sync_ssh_user and (cops_drupal_force_sync_ssh_user == True))
+    )%}
+  {% set user = cops_drupal_sync_ssh_user or ansible_user or '' %}
+  {% if user %}-l {{user}}{% endif %}
+  {% endif %}
+teleport_post_reset_script_default: |-
+  set -ex
+  cd {{teleport_wd}};
+  su="gosu drupal";
+  cat|COMPOSE_INTERACTIVE_NO_CLI= {{teleport_dc}} \
+  run -u root --no-deps --rm {{teleport_app_container}} \
+  /code/init/init.sh sh -ex - <<EOF
+  whoami >&2
+  #
+  if [ ! -e vendor/drush/drush/drush ];then bin/composerinstall;fi
+  #
+  bin/drush cr
+  #
+  {% if cops_drupal_devmode %}
+  bin/drush cset smtp.settings smtp_host       {{cops_drupal_smtp_host}}
+  bin/drush cset smtp.settings smtp_port       {{cops_drupal_smtp_port}}
+  bin/drush cset smtp.settings smtp_protocol   {{cops_drupal_smtp_protocol}}
+  bin/drush cset smtp.settings smtp_autotls    {{"{0}".format(cops_drupal_smtp_autotls)|lower}}
+  bin/drush cset smtp.settings smtp_username   {{cops_drupal_smtp_username}}
+  bin/drush cset smtp.settings smtp_password   {{cops_drupal_smtp_password}}
+  {% endif %}
+  EOF
+  export COMPOSE_INTERACTIVE_NO_CLI=1
+teleport_pg_restore_clean: true
+teleport_pg_restore_flags: >-
+  -U \$POSTGRES_USER -d \$POSTGRES_DB
+  --no-owner --no-privileges --no-acl
+  {% if teleport_pg_restore_clean%}--clean --if-exists{%endif%}
+teleport_pg_restore: |-
+  {% if teleport_pg_restore_drop_db%}
+  ( LANG=C dropdb -U \$POSTGRES_USER \$POSTGRES_DB 2>&1 || /bin/true; ) \
+  | ( egrep -v exist || /bin/true )
+  createdb -U \$POSTGRES_USER -O \$POSTGRES_USER -E {{teleport_db_encoding}} \
+    \$POSTGRES_DB
+  {%endif%}
+  zcat {{teleport_paths_dest_dump_file}}|pg_restore {{teleport_pg_restore_flags}}
+teleport_reset_db_script_restore_postgres: |-
+  set -ex
+  cd "{{teleport_wd}}"
+  cat|COMPOSE_INTERACTIVE_NO_CLI= {{teleport_dc}} \
+  exec -T {{teleport_db_container}} sh -ex - <<EOF
+  {{teleport_pg_restore}}
+  EOF
+teleport_clean_dump: false
+teleport_reset_db_script_default: |-
+  set -ex
+  {{lookup('vars', 'teleport_reset_db_script_restore_'+teleport_db_mode)}}
+  {% if teleport_clean_dump %}
+  cd "{{teleport_wd}}"
+  {{teleport_dc}} \
+  exec -T {{teleport_db_container}} rm -f "{{teleport_paths_dest_dump_file}}"
+  {% endif %}
+teleport_restart_script_default: |-
+  set -ex
+  cd "{{teleport_wd}}"
+  {% for i in teleport_restart_services %}
+  {{teleport_dc}} stop {{i}}
+  {{teleport_dc}} up -d --force-recreate --no-deps {{i}}
+  {% endfor %}
+teleport_restart_script: "{{teleport_restart_script_default}}"
+teleport_stop_script_default: |-
+  set -ex
+  cd "{{teleport_wd}}"
+  {% for i in teleport_stop_services %}
+  {{teleport_dc}} stop {{i}}
+  {% endfor %}
+teleport_stop_script: "{{teleport_stop_script_default}}"
+teleport_reset_db_script: "{{teleport_reset_db_script_default}}"
+teleport_post_reset_script: "{{teleport_post_reset_script_default}}"
+teleport_db_restart_script: |-
+  set -ex
+  cd "{{teleport_wd}}"
+  {{teleport_dc}} stop {{teleport_db_container}}
+  {{teleport_dc}} up -d --force-recreate --no-deps {{teleport_db_container}}
+teleport_deploy_ssh_key_paths: |-
+  {%- set ret = cops_deploy_ssh_key_paths|copsf_deepcopy %}
+  {%- for r, rdata in ret.items() %}
+  {%- set _ = rdata.update(
+    {'path': teleport_wd+'/local/.ssh/'+r}) %}
+  {%- endfor %}
+  {{- ret | to_json }}
+teleport_dryrun: false

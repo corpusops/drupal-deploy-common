@@ -1,0 +1,43 @@
+- debug: {msg: "{{teleport_ssh_key_path}}"}
+  when: "teleport_debug|default(false)"
+- debug: {msg: "{{item}}"}
+  when: "teleport_debug|default(false)"
+- stat: {path: "{{item.value.ssh_key_path|default(teleport_ssh_key_path)}}"}
+  register: sk
+- name: "{{item.key}}: synchronise to container {{item.value.container}}: {{item.value.container_path}}"
+  shell: |-
+    set -ex
+    set -o pipefail
+    {% set d = teleport_debug|default(false) %}
+    {% set dr = item.value.dryrun|default(teleport_dryrun) %}
+    {% set oh = item.value.origin_host|default(teleport_origin_host) %}
+    {% set rsync = item.value.sshcmd|default(teleport_rsynccmd) %}
+    {% set ssh = item.value.sshcmd|default(teleport_sshcmd) %}
+    {% set sshargs = item.value.sshargs|default(teleport_sshargs) %}
+    {% set rsync_args = item.value.rsync_args|default(teleport_rsync_args) %}
+    {% set rsync_extra_args = item.value.rsync_extra_args|default(teleport_rsync_extra_args) %}
+    {% set cp = item.value.container_path %}
+    {% set k = item.value.ssh_key_path|default(teleport_ssh_key_path) %}
+    cd "{{teleport_wd}}"
+    cat|COMPOSE_INTERACTIVE_NO_CLI= \
+    {{teleport_dc}} run --no-deps --rm -u root \
+    {% if k and sk.stat.exists%} -v "{{k}}:{{k}}:ro"{%endif%} \
+      --entrypoint bash {{item.value.container}} -ex - << EOF
+    pkgs=""
+    if ! ({{ssh}} -V &>/dev/null);then pkgs="\$pkgs openssh-client";fi
+    if ! ({{rsync}} --version &>/dev/null);then pkgs="\$pkgs rsync";fi
+    if [[ -n "\$pkgs" ]];then
+      if (apt --version &>/dev/null);then apt -yq update && apt install -y \$pkgs
+      elif (apk --version &>/dev/null);then apk update && apk add -f \$pkgs
+      fi
+    fi
+    if [ ! -e "{{cp}}" ];then mkdir -vp "{{cp}}";fi
+    {{dr and 'echo ' or ''}}{{rsync}} \
+      {% if sshargs %}-e "{{ssh}} {{sshargs}}"{%endif%} \
+      {{rsync_args}} \
+      {{rsync_extra_args}} \
+      "{{oh}}:{{item.value.origin_path}}" "{{cp}}"
+    EOF
+  args: {executable: /bin/bash}
+  no_log: "{{not cops_drupal_teleport_debug|default(False)}}"
+  tags: [teleport_xfer, teleport_xfer_dest]
