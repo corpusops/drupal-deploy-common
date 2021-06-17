@@ -1,0 +1,5 @@
+- debug: {msg: "{{teleport_items }}"}
+  when: cops_dockercontainer_debug|default(false)
+- include_tasks: with_docker.yml
+  loop: "{{teleport_items|dict2items}}"
+  when: (teleportsynctest|default({})).get('msg', {}).get(item.key, True)

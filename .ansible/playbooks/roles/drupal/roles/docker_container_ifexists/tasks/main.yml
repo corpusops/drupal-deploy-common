@@ -1,0 +1,57 @@
+- debug: {msg: "{{teleport_items }}"}
+  when: teleport_debug|default(false)
+- stat: {path: "{{item.value.ssh_key_path|default(teleport_ssh_key_path)}}"}
+  register: sk
+  loop: "{{teleport_items|dict2items}}"
+- debug: {msg: "{{teleport_origin_sshargs_default}}"}
+- debug:
+    msg: |-
+      {%- set ret = {} %}
+      {%- for i in sk.results %}
+      {%- set _ = ret.update({i.item.key: i.stat}) %}
+      {%- endfor %}
+      {{- ret | to_json }}
+  register: ssk
+- name: "{{item.key}}:{{item.value.container}}: test if origin path exists"
+  shell: |-
+    set -ex
+    {% for t, td in teleport_items.items() %}
+    {% set d = teleport_debug|default(false) %}
+    {% set oh = td.origin_host|default(teleport_origin_host) %}
+    {% set ssh = td.sshcmd|default(teleport_sshcmd) %}
+    {% set sshargs = td.sshargs|default(teleport_sshargs) %}
+    {% set k = td.ssh_key_path|default(teleport_ssh_key_path) %}
+    {% if td.only_if_exists|default(false) %}
+    cd "{{teleport_wd}}" && cat|docker run -i --rm -u root \
+    {% if k and ssk.msg[t].exists%} -v "{{k}}:{{k}}:ro"{%endif%} \
+      --entrypoint sh corpusops/sshd -x - <<'EOF'
+    set +e
+    t=ORIGINEXISTS
+    if ! ( {{ssh}} {{sshargs}} {{oh}} \
+             stat -c 'STAT:%n' "{{td.origin_path}}" );then
+      t=ORIGINDOESNOTEXISTS
+    fi
+    echo "{{t}}:::{{oh}}:::$t:::{{td.origin_path}}"
+    #
+    #
+    EOF
+    {% endif %}
+    {% endfor %}
+  args: {executable: /bin/bash}
+  no_log: "{{not teleport_debug|default(False)}}"
+  tags: [teleport_xfer_ifexists, teleport_xfer_ifexists_test]
+  register: teleport_ifexists
+- debug:
+    msg: |-
+      {% set ret = {} %}
+      {% for i, data in teleport_items.items() %}
+      {%  set _ = ret.update({i: True}) %}
+      {% endfor %}
+      {% for line in teleport_ifexists.stdout_lines %}
+      {%  if 'ORIGINDOESNOTEXISTS' in line %}
+      {%    set _ = ret.update({line.split(':::')[0]: False}) %}
+      {%  endif %}
+      {% endfor %}
+      {{ ret | to_json }}
+  register: teleportsynctest
+  when: cops_dockercontainer_debug|default(false)

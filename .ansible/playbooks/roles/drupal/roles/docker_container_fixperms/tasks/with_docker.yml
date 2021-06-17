@@ -1,0 +1,20 @@
+- when: "item.value.reset_perms|default(teleport_reset_perms)"
+  name: "{{item.key}}: resetperms container {{item.value.container}}: {{item.value.container_path}}"
+  shell: |-
+    {% set p = item.value.container_path %}
+    {% set o = item.value.owner|default(cops_drupal_medias_owner) %}
+    {% set g = item.value.group|default(cops_drupal_medias_group) %}
+    set -ex
+    cd "{{teleport_wd}}"
+    cat|COMPOSE_INTERACTIVE_NO_CLI= \
+    {{teleport_dc}} run --no-deps --rm -u root \
+      --entrypoint bash {{item.value.container}} -ex - <<EOF
+    while read f;do chown -Rvf {{o}}:{{g}} "\$f"; done < \
+      <(find "{{p}}" \( -not -uid {{o}} -or -not -gid {{g}} \) )
+    while read f;do chmod -v o+x "\$f";done < \
+      <(find "{{p}}" -type d -and -not -perm -o+x)
+    while read f;do chmod -v o+rx "\$f";done < \
+      <(find "{{p}}" -type f -and -not -perm -o+rx)
+    EOF
+  args: {executable: /bin/bash}
+  tags: [teleport_perms]
