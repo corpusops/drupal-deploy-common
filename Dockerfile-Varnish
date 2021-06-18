@@ -1,0 +1,20 @@
+FROM corpusops/ubuntu-bare:20.04
+
+RUN bash -c 'set -ex \
+    && : "Install Varnish Package" \
+    && apt-get update \
+    && apt-get install -y \
+      varnish \
+    && rm -rf /var/lib/apt/lists/* \
+    '
+
+RUN mkdir -p /docker/sys/etc/varnish/
+
+COPY local/drupal-deploy-common/sys/varnish.sh /
+COPY sys/etc/varnish/varnish.vcl.frep /docker/sys/etc/varnish/varnish.vcl.frep
+
+WORKDIR /docker/sys
+
+ENTRYPOINT []
+
+CMD "/varnish.sh"
