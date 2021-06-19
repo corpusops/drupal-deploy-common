@@ -1,10 +1,28 @@
 #!/bin/bash
 SDEBUG=${SDEBUG-}
 SCRIPTSDIR="$(dirname $(readlink -f "$0"))"
-SHELL_USER=${SHELL_USER-}
-cd "$SCRIPTSDIR/../.."
-TOPDIR=$(pwd)
+SHELL_USER=${SHELL_USER-$(whoami)}
+COMPOSER_JSON_CANDIDATES=${COMPOSER_JSON_CANDIDATES:-app/composer.json composer.json}
+TOPDIR_CANDIDATES=${TOPDIR_CANDIDATES:-$SCRIPTSDIR/../.. $SCRIPTSDIR/../../../../ ../}
 
+# detect root folder, either 4 levels under if called from common-glue
+# or 2 from project root
+TOPDIR=
+for i in $TOPDIR_CANDIDATES;do
+    for j in $COMPOSER_JSON_CANDIDATES;do
+        if [ -e "$i/$j" ];then
+            cd "$i"
+            TOPDIR=$(pwd)
+            break
+        fi
+    done
+done
+if [[ -z "$TOPDIR" ]];then
+    echo "Can't detect project root level" >&2
+    exit 1
+fi
+
+cd "$TOPDIR"
 # now be in stop-on-error mode
 set -e
 # load locales & default env
@@ -33,9 +51,12 @@ else
     GOSU_CMD="gosu $APP_USER"
 fi
 
-if [ -e $SCRIPTSDIR/pre-composer.sh ]; then
-    $SCRIPTSDIR/pre-composer.sh
-fi
+for i in "$TOPDIR" "$TOPDIR/scripts" "$SCRIPTSDIR";do
+    if [ -e $i/pre-composer.sh ]; then
+        $i/pre-composer.sh
+        break
+    fi
+done
 (
     cd $PROJECT_DIR \
     && $GOSU_CMD /usr/local/bin/composer clear-cache \
