@@ -54,7 +54,10 @@ else
     GOSU_CMD="gosu $APP_USER"
 fi
 
-for i in "$TOPDIR" "$TOPDIR/scripts" "$SCRIPTSDIR";do
+for i in \
+    "$TOPDIR" "$TOPDIR/sbin" "$TOPDIR/sys" "$TOPDIR/sys/sbin" \
+    "$SCRIPTSDIR" \
+    ;do
     if [ -e $i/pre-composer.sh ]; then
         $i/pre-composer.sh
         break
