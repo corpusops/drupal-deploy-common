@@ -249,7 +249,11 @@ services_setup() {
     # composer install
     if [[ -z ${NO_COMPOSER} ]];then
         if [ -e /code/init/sbin/composerinstall.sh ]; then
-            /code/init/sbin/composerinstall.sh
+            if [[ "${DRUPAL_ENV_NAME}" = "dev" ]] || [[ "${DRUPAL_ENV_NAME}" = "test" ]]; then
+                /code/init/sbin/composerinstall.sh
+            else
+                /code/init/sbin/composerinstall.sh --no-dev
+            fi
         fi
     fi
 
