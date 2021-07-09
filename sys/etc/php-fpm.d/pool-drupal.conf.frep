@@ -432,7 +432,9 @@ slowlog = /var/log/php-fpm/www-slow.log
 ;php_value[soap.wsdl_cache_dir]  = /var/lib/php/wsdlcache
 ;php_value[opcache.file_cache]  = /var/lib/php/opcache
 
-php_admin_value[open_basedir] = "/code/data:/code/app:/tmp:"
+; will soon be removed in PHP, perfs problems, and not so necessary in Docker mode
+; and regular problems in D9
+;php_admin_value[open_basedir] = "/code:/tmp:"
 
 php_value[include_path] = ".:..:/code/app/src"
 
