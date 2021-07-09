@@ -1,7 +1,7 @@
 ---
 cops_drupal_name: drupalinstance
 cops_drupal_profile_name: "{{cops_drupal_name}}"
-cops_drupal_project_module_name: "{{cops_drupal_name}}"
+cops_drupal_project_module_name: "{{cops_drupal_profile_name}}"
 cops_drupal_branch_envs: {}
 cops_drupal_default_deploy_env: prod
 cops_drupal_deploy_env: "{{ (
@@ -145,7 +145,6 @@ cops_drupal_dotenv_defaults: |-
   DATABASE_HOST={{ cops_drupal_db_host }}
   DATABASE_PORT={{ cops_drupal_db_port }}
   DATABASE_PREFIX={{ cops_drupal_db_prefix }}
-  DRUPAL_NAME={{ cops_drupal_name }}
   COOKIE_DOMAIN={{ cops_drupal_hostname }}
   ABSOLUTE_URL_SCHEME=https
   ABSOLUTE_URL_DOMAIN={{ cops_drupal_hostname }}
