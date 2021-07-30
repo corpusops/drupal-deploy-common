@@ -1,21 +1,30 @@
 ; Enable xdebug extension module
 zend_extension=xdebug.so
 
+; For XDebug >= 3
+xdebug.client_host = "{{ .Env.PHP_XDEBUG_IP }}"
+xdebug.client_port = {{ .Env.PHP_XDEBUG_PORT }}
+xdebug.log=/tmp/xdebug.log
+xdebug.mode=debug,profile
+xdebug.output_dir="/tmp"
+xdebug.start_with_request=trigger
+
+; For XDebug < 3
 ; http://xdebug.org/docs/all_settings#collect_params (0|1|2|3|4)
-xdebug.remote_enable = {{ .Env.PHP_XDEBUG_REMOTE }}
-xdebug.remote_host = "{{ .Env.PHP_XDEBUG_IP }}"
-xdebug.remote_port = {{ .Env.PHP_XDEBUG_PORT }}
-xdebug.remote_handler = dbgp
-xdebug.profiler_output_name =  "/cachegrind.out.%p"
+xdebug.collect_params = 0
+xdebug.default_enable = 0
+xdebug.profiler_enable = 0
 xdebug.profiler_enable_trigger = {{ .Env.PHP_XDEBUG_PROFILER_ENABLE_TRIGGER }}
+xdebug.profiler_output_dir ="/tmp"
+xdebug.profiler_output_name =  "/cachegrind.out.%p"
 xdebug.remote_autostart = {{ .Env.PHP_XDEBUG_REMOTE_AUTOSTART }}
+xdebug.remote_connect_back = 0
+xdebug.remote_enable = {{ .Env.PHP_XDEBUG_REMOTE }}
+xdebug.remote_handler = dbgp
+xdebug.remote_host = "{{ .Env.PHP_XDEBUG_IP }}"
+xdebug.remote_log=""
+xdebug.remote_port = {{ .Env.PHP_XDEBUG_PORT }}
 xdebug.trace_enable_trigger = {{ .Env.PHP_XDEBUG_PROFILER_ENABLE_TRIGGER }}
 xdebug.trace_format = 1
-xdebug.output_dir="/tmp"
-xdebug.profiler_output_dir ="/tmp"
 xdebug.trace_output_dir ="/tmp"
-xdebug.default_enable = 0
-xdebug.collect_params = 0
-xdebug.profiler_enable = 0
-xdebug.remote_connect_back = 0
-xdebug.remote_log=""
+
