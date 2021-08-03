@@ -202,12 +202,14 @@ cops_drupal_dotenv_defaults: |-
   MAILCATCHER_PASSWORD={{cops_drupal_mailcatcher_password}}
   DBS_DBNAMES={{cops_drupal_backuped_dbs}}
   NO_FORCE_SSL={{ cops_drupal_nginx_avoid_ssl_rewrite }}
-  DRUPAL_SETTINGS__SMTP_SETTINGS___SMTP_HOST={{cops_drupal_smtp_host}}
-  DRUPAL_SETTINGS__SMTP_SETTINGS___SMTP_PORT={{cops_drupal_smtp_port}}
-  DRUPAL_SETTINGS__SMTP_SETTINGS___SMTP_PROTOCOL={{cops_drupal_smtp_protocol}}
-  DRUPAL_SETTINGS__SMTP_SETTINGS___SMTP_AUTOTLS={{"{0}".format(cops_drupal_smtp_autotls)|lower}}
-  DRUPAL_SETTINGS__SMTP_SETTINGS___SMTP_USERNAME={{cops_drupal_smtp_username}}
-  DRUPAL_SETTINGS__SMTP_SETTINGS___SMTP_PASSWORD={{cops_drupal_smtp_password}}
+  DRUPAL_SETTINGS__system_DOT_mail___interface_DOT_default={{cops_drupal_mail_interface}}
+  DRUPAL_SETTINGS__SMTP_DOT_SETTINGS___SMTP_HOST={{cops_drupal_smtp_host}}
+  DRUPAL_SETTINGS__SMTP_DOT_SETTINGS___SMTP_PORT={{cops_drupal_smtp_port}}
+  DRUPAL_SETTINGS__SMTP_DOT_SETTINGS___SMTP_PROTOCOL={{cops_drupal_smtp_protocol}}
+  DRUPAL_SETTINGS__SMTP_DOT_SETTINGS___SMTP_AUTOTLS={{"{0}".format(cops_drupal_smtp_autotls)|lower}}
+  DRUPAL_SETTINGS__SMTP_DOT_SETTINGS___SMTP_USERNAME={{cops_drupal_smtp_username}}
+  DRUPAL_SETTINGS__SMTP_DOT_SETTINGS___SMTP_PASSWORD={{cops_drupal_smtp_password}}
+cops_drupal_mail_interface: 'SMTPMailSystem'
 cops_drupal_dotenv: "{{cops_drupal_dotenv_defaults}}"
 cops_drupal_dotenv_extra: ""
 # free form for params inside dockerenv
