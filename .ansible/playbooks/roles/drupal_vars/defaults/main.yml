@@ -69,7 +69,7 @@ cops_drupal_sshargs: >-
   {% if((cops_drupal_force_sync_ssh_user) or
         (cops_drupal_sync_ssh_user and (cops_drupal_force_sync_ssh_user == True))
     )%}
-  {% set user = cops_drupal_sync_ssh_user or ansible_user or '' %}
+  {% set user = cops_drupal_sync_ssh_user or (ansible_user|default('')) or '' %}
   {% if user %}-l {{user}}{% endif %}
   {% endif %}
 cops_drupal_build: false
@@ -447,7 +447,7 @@ cops_drupal_sync_ssh_user: ""
 ansible_bastion: ""
 cops_drupal_sync_ssh_user_internal: "{% if((cops_drupal_force_sync_ssh_user) or
         (cops_drupal_sync_ssh_user and (cops_drupal_force_sync_ssh_user == True))
-    )%}{{ cops_drupal_sync_ssh_user or ansible_user or '' }}{% endif %}"
+    )%}{{ cops_drupal_sync_ssh_user or (ansible_user|default('')) or '' }}{% endif %}"
 teleport_env_ssh_deploy_key: "{{cops_drupal_dir_default}}/local/.ssh/deploy"
 teleport_bastion_ssh_deploy_key: "{{teleport_env_ssh_deploy_key}}"
 teleport_origin_viabastion_sshargs: "{% set d = hostvars[groups[teleport_origin][0]] %}{%if ansible_bastion%}-o ProxyCommand=\"ssh {% if teleport_bastion_ssh_deploy_key %}-i {{teleport_bastion_ssh_deploy_key}} {%endif%}-o IdentitiesOnly=yes -q -W {{d.ansible_host}}:{{d.ansible_port|default('22')}} {{ansible_bastion}} {%if ansible_bastion_user%}-l {{ansible_bastion_user}}{%endif%} -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no\" {%endif%}"
@@ -467,7 +467,7 @@ teleport_origin_sshargs_default: >-
   {{ ansible_bastion and teleport_origin_viabastion_sshargs or teleport_ssh_origin_args }}
   {{ hostvars[h].ansible_ssh_extra_args | default('') }}
   {% endif %}
-  {% set user = cops_drupal_sync_origin_ssh_user|default(cops_drupal_sync_ssh_user) or ansible_user or '' %}
+  {% set user = cops_drupal_sync_origin_ssh_user|default(cops_drupal_sync_ssh_user) or (ansible_user|default('')) or '' %}
   {% if cops_drupal_sync_ssh_user_internal %}-l {{user}}{% endif %}
 teleport_destination_sshargs_default: >-
   {% set h = groups[teleport_destination][0] %}
@@ -485,7 +485,7 @@ teleport_destination_sshargs_default: >-
   {% if((cops_drupal_force_sync_ssh_user) or
         (cops_drupal_sync_ssh_user and (cops_drupal_force_sync_ssh_user == True))
     )%}
-  {% set user = cops_drupal_sync_dest_ssh_user|default(cops_drupal_sync_ssh_user) or ansible_user or '' %}
+  {% set user = cops_drupal_sync_dest_ssh_user|default(cops_drupal_sync_ssh_user) or (ansible_user|default('')) or '' %}
   {% if user %}-l {{user}}{% endif %}
   {% endif %}
 teleport_post_reset_script_default: |-
