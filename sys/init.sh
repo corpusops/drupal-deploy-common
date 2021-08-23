@@ -302,6 +302,7 @@ services_setup() {
         section="${conf//___*/}"
         section=${section,,}
         i="${conf//*___/}"
+        section="${section//_DOT_/.}"
         i="${i//_DOT_/.}"
         var="${SETTINGS_KNOB}__${i^^}"
         val="$(eval 'echo ${'"$envvar"'}')"
