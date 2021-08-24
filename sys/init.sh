@@ -302,6 +302,7 @@ services_setup() {
         section="${conf//___*/}"
         section=${section,,}
         i="${conf//*___/}"
+        i="${i//_DOT_/.}"
         var="${SETTINGS_KNOB}__${i^^}"
         val="$(eval 'echo ${'"$envvar"'}')"
         if [[ -n "$val" ]];then
