@@ -202,6 +202,12 @@ cops_drupal_dotenv_defaults: |-
   MAILCATCHER_PASSWORD={{cops_drupal_mailcatcher_password}}
   DBS_DBNAMES={{cops_drupal_backuped_dbs}}
   NO_FORCE_SSL={{ cops_drupal_nginx_avoid_ssl_rewrite }}
+  DRUPAL_SETTINGS__SMTP_SETTINGS___SMTP_HOST={{cops_drupal_smtp_host}}
+  DRUPAL_SETTINGS__SMTP_SETTINGS___SMTP_PORT={{cops_drupal_smtp_port}}
+  DRUPAL_SETTINGS__SMTP_SETTINGS___SMTP_PROTOCOL={{cops_drupal_smtp_protocol}}
+  DRUPAL_SETTINGS__SMTP_SETTINGS___SMTP_AUTOTLS={{"{0}".format(cops_drupal_smtp_autotls)|lower}}
+  DRUPAL_SETTINGS__SMTP_SETTINGS___SMTP_USERNAME={{cops_drupal_smtp_username}}
+  DRUPAL_SETTINGS__SMTP_SETTINGS___SMTP_PASSWORD={{cops_drupal_smtp_password}}
 cops_drupal_dotenv: "{{cops_drupal_dotenv_defaults}}"
 cops_drupal_dotenv_extra: ""
 # free form for params inside dockerenv
@@ -449,21 +455,13 @@ teleport_post_reset_script_default: |-
   su="gosu drupal";
   cat|COMPOSE_INTERACTIVE_NO_CLI= {{teleport_dc}} \
   run -u root --no-deps --rm {{teleport_app_container}} \
-  /code/init/init.sh sh -ex - <<EOF
+  /code/init/init.sh bash -ex - <<EOF
   whoami >&2
   #
   if [ ! -e vendor/drush/drush/drush ];then bin/composerinstall;fi
   #
   bin/drush cr
   #
-  {% if cops_drupal_devmode %}
-  bin/drush cset smtp.settings smtp_host       {{cops_drupal_smtp_host}}
-  bin/drush cset smtp.settings smtp_port       {{cops_drupal_smtp_port}}
-  bin/drush cset smtp.settings smtp_protocol   {{cops_drupal_smtp_protocol}}
-  bin/drush cset smtp.settings smtp_autotls    {{"{0}".format(cops_drupal_smtp_autotls)|lower}}
-  bin/drush cset smtp.settings smtp_username   {{cops_drupal_smtp_username}}
-  bin/drush cset smtp.settings smtp_password   {{cops_drupal_smtp_password}}
-  {% endif %}
   EOF
   export COMPOSE_INTERACTIVE_NO_CLI=1
 teleport_pg_restore_clean: true
