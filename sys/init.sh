@@ -48,6 +48,7 @@ if [[ -n $SDEBUG ]];then set -x;fi
 DEFAULT_IMAGE_MODE=phpfpm
 
 export IMAGE_MODE=${IMAGE_MODE:-${DEFAULT_IMAGE_MODE}}
+export SETTINGS_KNOB=${SETTINGS_KNOB:-DRUPAL_SETTINGS}
 IMAGE_MODES="(cron|nginx|fg|phpfpm|supervisor)"
 NO_START=${NO_START-}
 DEFAULT_NO_MIGRATE=
@@ -94,6 +95,7 @@ export COOKIE_DOMAIN=${COOKIE_DOMAIN:-".local"}
 export APP_ENV=${APP_ENV:-"prod"}
 export DATABASE_URL=${DATABASE_URL:-"no value"}
 export APP_SECRET=${APP_SECRET:-42424242424242424242424242}
+export DO_DRUPAL_SETTINGS_ENFORCEMENT=${DO_DRUPAL_SETTINGS_ENFORCEMENT-1}
 
 log() {
     echo "$@" >&2;
@@ -154,6 +156,12 @@ fix_settings_perms() {
         chmod u+w "/code/app/www/sites/default/settings.php"
     fi
 }
+
+call_drush() {
+    ( cd $PROJECT_DIR \
+        && gosu $APP_USER php bin/drush -y "$@" )
+}
+
 
 #  configure: generate configs from template at runtime
 configure() {
@@ -262,11 +270,26 @@ services_setup() {
         ( cd $PROJECT_DIR \
             && gosu $APP_USER php bin/install.sh )
     fi
-
+    # Setup Drupal settings
+    # set smtp_settings smtp_host $val <- $DRUPAL_SETTINGS__SMTP_SETTINGS___SMTP_HOST
+    if [ "x${DO_DRUPAL_SETTINGS_ENFORCEMENT-}" = "x1" ];then
+    while read vardef;do
+        envvar="$(echo "$vardef" | awk -F= '{print $1}')"
+        conf="${envvar//*${SETTINGS_KNOB}__/}"
+        section="${conf//___*/}"
+        section=${section,,}
+        i="${conf//*___/}"
+        var="${SETTINGS_KNOB}__${i^^}"
+        val="$(eval 'echo ${'"$envvar"'}')"
+        if [[ -n "$val" ]];then
+            log "drush cset $section $i ***"
+            call_drush cset "$section" "$i" "$val"
+        fi
+    done < <(env|egrep -v "^\s*#" | egrep "^(${SETTINGS_KNOB}__[a-zA-Z0-9_]+)=" )
+    fi
     # Run any migration
     if [[ -z ${NO_MIGRATE} ]];then
-        ( cd $PROJECT_DIR \
-            && gosu $APP_USER php bin/drush -y updb )
+        call_drush updb
     fi
 }
 
