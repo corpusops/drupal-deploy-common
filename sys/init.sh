@@ -95,7 +95,13 @@ export COOKIE_DOMAIN=${COOKIE_DOMAIN:-".local"}
 export APP_ENV=${APP_ENV:-"prod"}
 export DATABASE_URL=${DATABASE_URL:-"no value"}
 export APP_SECRET=${APP_SECRET:-42424242424242424242424242}
+export INIT_HOOKS_DIR="${INIT_HOOKS_DIR:-/code/sys/scripts/hooks}"
 export DO_DRUPAL_SETTINGS_ENFORCEMENT=${DO_DRUPAL_SETTINGS_ENFORCEMENT-1}
+
+
+debuglog() {
+    if [[ -n "$DEBUG" ]];then echo "$@" >&2;fi
+}
 
 log() {
     echo "$@" >&2;
@@ -149,6 +155,23 @@ _shell() {
     export TERM="$TERM"; export COLUMNS="$COLUMNS"; export LINES="$LINES"
     exec gosu $user sh $( if [[ -z "$bargs" ]];then echo "-i";fi ) -c "$bargs"
 }
+
+execute_hooks() {
+    local step="$1"
+    local hdir="$INIT_HOOKS_DIR/${step}"
+    if [ ! -d "$hdir" ];then return 0;fi
+    shift
+    while read f;do
+        if ( echo "$f" | egrep -q "\.sh$" );then
+            debuglog "running shell hook($step): $f"
+            . "${f}"
+        else
+            debuglog "running executable hook($step): $f"
+            "$f" "$@"
+        fi
+    done < <(find "$hdir" -type f -executable 2>/dev/null | egrep -iv readme | sort -V; )
+}
+
 
 fix_settings_perms() {
     if [ -e /code/app/www/sites/default/settings.php ];then
@@ -364,12 +387,18 @@ fi
 # Run app
 pre() {
     configure
+    execute_hooks afterconfigure "$@"
     services_setup
+    execute_hooks afterservicessetup "$@"
     fixperms
+    execute_hooks afterfixperms "$@"
 }
+
+execute_hooks pre "$@"
 # only display startup logs when we start in daemon mode
 # and try to hide most when starting an (eventually interactive) shell.
 if ! ( echo "$NO_STARTUP_LOGS" | egrep -iq "^(no?)?$" );then pre 2>/dev/null;else pre;fi
+execute_hooks post "$@"
 
 if [[ -z "$@" ]]; then
     if ! ( echo $IMAGE_MODE | egrep -q "$IMAGE_MODES" );then
@@ -393,5 +422,6 @@ if [[ -z "$@" ]]; then
     fi
 else
     if [[ "${1-}" = "shell" ]];then shift;fi
+    execute_hooks beforeshell "$@"
     ( cd $PROJECT_DIR && _shell $SHELL_USER "$@" )
 fi
