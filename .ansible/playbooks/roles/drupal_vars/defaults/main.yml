@@ -113,7 +113,15 @@ cops_drupal_docker_env_freeform: |-
   {{ cops_drupal_docker_env_extra}}
 cops_drupal_docker_env_defaults: ""
 # free form for params inside dockerenv
+cops_drupal_http_listen: "0.0.0.0"
+cops_drupal_http_port: "80"
+cops_drupal_api_listen: "127.0.0.1"
+cops_drupal_api_port: "9000"
 cops_drupal_dotenv_defaults: |-
+  DRUPAL_HTTP_LISTEN={{cops_drupal_http_listen}}
+  DRUPAL_HTTP_PORT={{cops_drupal_http_port}}
+  DRUPAL_API_LISTEN={{cops_drupal_api_listen}}
+  DRUPAL_API_PORT={{cops_drupal_api_port}}
   PROJECT_PACKAGE={{ cops_drupal_name }}
   PROJECT_DIR=/code/app
   APP_TYPE=drupal
@@ -218,6 +226,7 @@ cops_drupal_dotenv_extra: ""
 cops_drupal_docker_env_extra: ""
 # Normally playbook is in ./.ansible/playbooks
 cops_drupal_code_dir: "{{playbook_dir}}/../.."
+cops_drupal_code_rsync_path: "{%if cops_drupal_sync_ssh_user_internal and (cops_drupal_sync_ssh_user_internal != 'root')%}sudo {% endif%}rsync"
 cops_drupal_code_rsync_opts: [
     "-azv",
     # include deploy projects base code
@@ -350,7 +359,7 @@ teleport_sync_files_default:
     container: "{{teleport_app_container}}"
     container_path: "{{teleport_paths.dest_privatedocs}}/"
   private:
-    origin_path: "{{teleport_paths.origin_private}}/"
+    o"rigin_path: "{{teleport_paths.origin_private}}/"
     container: "{{teleport_app_container}}"
     container_path: "{{teleport_paths.dest_private}}/"
     rsync_extra_args: "--exclude docs"
@@ -415,6 +424,9 @@ cops_drupal_medias_owner: "1000"
 cops_drupal_medias_group: "1000"
 cops_drupal_force_sync_ssh_user: null
 cops_drupal_sync_ssh_user: ""
+cops_drupal_sync_ssh_user_internal: "{% if((cops_drupal_force_sync_ssh_user) or
+        (cops_drupal_sync_ssh_user and (cops_drupal_force_sync_ssh_user == True))
+    )%}{{ cops_drupal_sync_ssh_user or ansible_user or '' }}{% endif %}"
 teleport_origin_sshargs_default: >-
   {% set h = groups[teleport_origin][0] %}
   {% set k = teleport_ssh_origin_key_path%}
@@ -428,12 +440,7 @@ teleport_origin_sshargs_default: >-
   {{ hostvars[h].ansible_ssh_common_args | default('') }}
   {{ hostvars[h].ansible_ssh_extra_args | default('') }}
   {% endif %}
-  {% if((cops_drupal_force_sync_ssh_user) or
-        (cops_drupal_sync_ssh_user and (cops_drupal_force_sync_ssh_user == True))
-    )%}
-  {% set user = cops_drupal_sync_ssh_user or ansible_user or '' %}
-  {% if user %}-l {{user}}{% endif %}
-  {% endif %}
+  {% if cops_drupal_sync_ssh_user_internal %}-l {{user}}{% endif %}
 teleport_destination_sshargs_default: >-
   {% set h = groups[teleport_destination][0] %}
   {% set k = teleport_ssh_destination_key_path%}
@@ -527,3 +534,41 @@ teleport_deploy_ssh_key_paths: |-
   {%- endfor %}
   {{- ret | to_json }}
 teleport_dryrun: false
+cops_drupal_haproxy_certbot: true
+cops_drupal_haproxy_setup: "{{playbook_dir}}/roles/drupal/roles/haproxy/setup"
+cops_drupal_haproxy_dir: "{{ (cops_drupal_dir + '/../haproxy') | copsf_abspath }}"
+cops_drupal_haproxy_image: "haproxy:lts-buster"
+cops_drupal_haproxy_listen_ip: "*"
+cops_drupal_haproxy_listen_int_ip: "127.0.0.1"
+cops_drupal_haproxy_listen_port: "80"
+cops_drupal_haproxy_listen_sport: "443"
+cops_drupal_haproxy_listen_cport: "9999"
+cops_drupal_haproxy_redir_host: "127.0.0.1"
+cops_drupal_certbot_address: "127.0.0.1"
+cops_drupal_haproxy_redir_port: "8080"
+cops_drupal_certbot_port: "380"
+cops_drupal_haproxy_redir_sport: "8080"
+cops_drupal_certbot_renewal: "30 days"
+cops_drupal_certbot_staging: false
+cops_drupal_haproxy_service: restarted
+cops_drupal_haproxy_compose_files: "{% set c=['docker-compose.yml']%}{%if cops_drupal_haproxy_certbot%}{% set _=c.append('docker-compose-certbot.yml')%}{%endif%}{{c}}"
+cops_drupal_haproxy_cname: "haproxy-{{cops_drupal_composename}}"
+cops_drupal_haproxy_env: |-
+  CERTBOT_RENEWAL={{cops_drupal_certbot_renewal}}
+  COMPOSE_PROJECT_NAME={{cops_drupal_haproxy_cname}}
+  COMPOSE_FILE={{':'.join(cops_drupal_haproxy_compose_files)}}
+  HAPROXY_IP={{cops_drupal_haproxy_listen_ip}}
+  HAPROXY_PORT={{cops_drupal_haproxy_listen_port}}
+  HAPROXY_SPORT={{cops_drupal_haproxy_listen_sport}}
+  HAPROXY_INT_IP={{cops_drupal_haproxy_listen_int_ip}}
+  HAPROXY_CPORT={{cops_drupal_haproxy_listen_cport}}
+  HAPROXY_REDIR_HOST={{cops_drupal_haproxy_redir_host}}
+  HAPROXY_REDIR_PORT={{cops_drupal_haproxy_redir_port}}
+  HAPROXY_REDIR_SPORT={{cops_drupal_haproxy_redir_sport}}
+  CERTBOT_PORT={{cops_drupal_certbot_port}}
+  CERTBOT_ADDRESS={{cops_drupal_certbot_address}}
+  CERTBOT_DRYRUN="{{cops_drupal_certbot_dryrun}}"
+  CERTBOT_STAGING="{{cops_drupal_certbot_staging}}"
+  CERTBOT_HTTP01_CNS_1={{','.join(cops_drupal_hostnames)}}
+cops_drupal_certbot_dryrun: "1"
+cops_drupal_hostnames: "{{([cops_drupal_hostname]+cops_drupal_alternate_hostnames)|copsf_uniquify}}"
