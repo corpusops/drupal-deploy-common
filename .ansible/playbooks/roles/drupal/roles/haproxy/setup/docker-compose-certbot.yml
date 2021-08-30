@@ -1,0 +1,18 @@
+version: "3"
+services:
+  certbot:
+    depends_on: [helpers]
+    image: certbot/certbot
+    volumes:
+    - ./certbot:/certbot
+    - ./certbot/etc:/etc/letsencrypt
+    - ./certbot/log:/var/log/letsencrypt
+    - ./certbot/lib:/var/lib/letsencrypt
+    entrypoint:
+    - "sh"
+    - "-exc"
+    - |-
+      export PATH="/cops:$$PATH";while :;do if ( dockerize -wait http://localhost:${HAPROXY_S_HELPERS_PORT:-65008} );then break;fi;done
+      while true;do printf "HTTP/1.1 200 OK\n\nstarted"| ( busybox nc -l 127.0.0.1 -p ${HAPROXY_S_CERTBOT_PORT:-65010}||/bin/true);done&
+      dockerize -wait http://localhost:${HAPROXY_S_HAPROXY_PORT:-65009} -timeout 180s
+      exec gosu 0 /certbot/renew.sh

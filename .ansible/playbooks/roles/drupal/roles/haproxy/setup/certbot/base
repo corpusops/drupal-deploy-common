@@ -1,0 +1,27 @@
+#!/bin/sh
+set -e
+is_on() { echo "$@"|egrep -iq "^(t|y|o|1)"; }
+maydryrun() { if [ "x$CERTBOT_DRYRUN" != "x"];then echo "$@" >&2; else "$@";fi; }
+log() { echo "$@">&2; }
+vv() { log "$@";"$@"; }
+die() { log "$@";exit ${ec:-0}; }
+SDEBUG=${SDEBUG-}
+SLEEPTIME=${SLEEPTIME:-$((60*60*24))}
+CERTBOT_RENEWAL=${CERTBOT_RENEWAL:-}
+CERTBOT_DRYRUN=${CERTBOT_DRYRUN-}
+CERTBOT_ENV_VAR_PREFIX="${CERTBOT_ENV_VAR_PREFIX:-CERTBOT_HTTP01_CNS}"
+CERTBOT_EMAIL=${CERTBOT_EMAIL:-certbot@certbot.me}
+CERTBOT_ADDRESS=${CERTBOT_ADDRESS:-127.0.0.1}
+CERTBOT_STAGING=${CERTBOT_STAGING:-}
+CERTBOT_PORT=${CERTBOT_PORT:-380}
+HAPROXY_INT_IP=${HAPROXY_INT_IP:-localhost}
+HAPROXY_CPORT=${HAPROXY_CPORT:-9999}
+CERTBOT_ARGS="certonly --standalone --non-interactive \
+   --agree-tos --email=$CERTBOT_EMAIL \
+   --http-01-address=$CERTBOT_ADDRESS --http-01-port=$CERTBOT_PORT \
+   --deploy-hook /certbot/deploy.sh --post-hook /certbot/post.sh"
+CERTBOT_CONSTANTS_FILES=${CERTBOT_CONSTANTS_FILES:-"\
+    /opt/certbot/src/certbot/certbot/_internal/constants.py\
+    src/certbot/certbot/_internal/constants.py"}
+if [ "x${SDEBUG-}" != "x" ];then set -x;fi
+if ( is_on "${CERTBOT_STAGING-}" );then CERTBOT_ARGS="$CERTBOT_ARGS --staging";fi

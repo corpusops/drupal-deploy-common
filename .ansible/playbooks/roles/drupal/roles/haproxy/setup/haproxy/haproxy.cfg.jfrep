@@ -1,0 +1,58 @@
+global
+  stats socket {{'{{'}}.Env.HAPROXY_INT_IP}}:{{'{{'}}.Env.HAPROXY_CPORT}} level admin expose-fd listeners
+  maxconn 4096
+  ulimit-n 65536
+  tune.ssl.default-dh-param 2048
+  ssl-default-server-options ssl-min-ver TLSv1.2
+  user haproxy
+
+defaults
+  log  global
+  mode http
+  option httplog
+  option abortonclose
+  option redispatch
+  option dontlognull
+  retries 3
+  maxconn 2000
+  timeout connect 7s
+  timeout queue   15s
+  timeout client  300s
+  timeout server  300s
+
+frontend http
+  bind {{'{{'}}.Env.HAPROXY_IP}}:{{'{{'}}.Env.HAPROXY_PORT}}
+{% if cops_drupal_haproxy_certbot %}
+  acl certbot path_beg /.well-known/acme-challenge/
+  use_backend certbot if certbot
+{% endif %}
+  default_backend www
+
+frontend https
+  bind {{'{{'}}.Env.HAPROXY_IP}}:{{'{{'}}.Env.HAPROXY_SPORT}} ssl crt /certificates/ no-sslv3 no-tls-tickets no-tlsv10 no-tlsv11
+  http-response set-header Strict-Transport-Security "max-age=16000000; includeSubDomains; preload;"
+{% if cops_drupal_haproxy_certbot %}
+  acl certbot path_beg /.well-known/acme-challenge/
+  use_backend certbot if certbot
+{% endif %}
+  default_backend www
+
+{% if cops_drupal_haproxy_certbot %}
+backend certbot
+  server certbot {{'{{'}}.Env.CERTBOT_ADDRESS}}:{{'{{'}}.Env.CERTBOT_PORT}}
+{% endif %}
+
+backend www
+  balance roundrobin
+  option httpchk OPTIONS /
+  option forwardfor
+  option http-keep-alive
+  option log-health-checks
+  http-check expect rstatus (2|3|4|5)[0-9][0-9]
+  http-request set-header X-Forwarded-Proto http  if !{ ssl_fc }
+  http-request set-header X-Forwarded-Proto https if { ssl_fc }
+  http-request set-header X-FORWARDED-SSL %[ssl_fc]
+  http-request set-header X-SSL %[ssl_fc]
+  server www {{'{{'}}.Env.HAPROXY_REDIR_HOST}}:{{'{{'}}.Env.HAPROXY_REDIR_SPORT}} check weight 100 inter 20s
+
+# vim: set ft=haproxy et tw=0:

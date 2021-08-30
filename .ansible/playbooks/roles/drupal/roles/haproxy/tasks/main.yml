@@ -1,0 +1,40 @@
+---
+- name: Create container dir
+  file:
+    path: "{{cops_drupal_haproxy_dir}}"
+    state: directory
+- name: Create directories
+  file:
+    path: "{{cops_drupal_haproxy_dir}}/{{ item.path }}"
+    state: directory
+    mode: '{{ item.mode }}'
+  with_filetree: "{{cops_drupal_haproxy_setup}}/"
+  when: item.state == 'directory'
+- name: Template files
+  template:
+    src: '{{ item.src }}'
+    dest: "{{cops_drupal_haproxy_dir}}/{{ item.path }}"
+    mode: '{{ item.mode }}'
+    trim_blocks: false
+  with_filetree: "{{cops_drupal_haproxy_setup}}/"
+  when:
+  - "item.state == 'file'"
+  - "not item.path|regex_search('\\.frep$|conf.d')"
+- name: Copy files
+  copy:
+    src: '{{ item.src }}'
+    dest: "{{cops_drupal_haproxy_dir}}/{{ item.path }}"
+    mode: '{{ item.mode }}'
+  with_filetree: "{{cops_drupal_haproxy_setup}}/"
+  when:
+  - "item.state == 'file'"
+  - "item.path|regex_search('\\.frep$|conf.d')"
+- include_role: {name: corpusops.roles/docker_compose_service}
+  vars:
+    _docker_compose_service:
+      working_directory: "{{cops_drupal_haproxy_dir}}"
+      files: "{{cops_drupal_haproxy_compose_files}}"
+      restart: "on-failure"
+      project: "{{cops_drupal_haproxy_cname}}"
+      state: "{{cops_drupal_haproxy_service}}"
+  tags: [service, service_haproxy]
