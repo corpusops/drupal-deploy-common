@@ -231,7 +231,7 @@ cops_drupal_code_rsync_opts: [
 cops_drupal_backup_postgresql: "{{'5432' == '{0}'.format(cops_drupal_db_port)}}"
 cops_drupal_backup_paths_to_backup:
 - "{{cops_drupal_dir}}"
-cops_drupal_backup_docker_volumes: [mediafiles]
+cops_drupal_backup_docker_volumes: [publiccontrib, private]
 cops_drupal_backup_docker_volumes_: |-
   {% set res = [] %}
   {% for i in cops_drupal_backup_docker_volumes %}
