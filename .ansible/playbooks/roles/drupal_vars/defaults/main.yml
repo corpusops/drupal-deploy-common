@@ -176,7 +176,6 @@ cops_drupal_dotenv_defaults: |-
   VARNISH_NGINX_SHARED_SECRET={{ cops_drupal_varnish_nginx_shared_secret }}
   {% endif %}
   # Used in INSTALL ---------------
-  DRUPAL_FORCE_INSTALL={{ cops_drupal_force_reinstall }}
   PROFILE_NAME={{ cops_drupal_profile_name }}
   SITE_NAME={{ cops_drupal_name }}
   SITE_MAIL=contact@{{ cops_drupal_hostname }}
