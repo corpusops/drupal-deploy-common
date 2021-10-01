@@ -1,6 +1,6 @@
 {{ $opcache_enabled := .Env.PHP_OPCACHE_ENABLED | default "1" }}
 {{ if eq $opcache_enabled "1" }}
-zend_extension=opcache
+zend_extension=opcache.so
 opcache.enable=1
 opcache.enable_cli=1
 ; Memory in MB
