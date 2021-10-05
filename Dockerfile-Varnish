@@ -1,4 +1,5 @@
-FROM corpusops/ubuntu-bare:20.04
+ARG BASE=corpusops/ubuntu-bare:20.04
+FROM $BASE AS BASE
 
 RUN bash -c 'set -ex \
     && : "Install Varnish Package" \
