@@ -118,6 +118,7 @@ cops_drupal_dotenv_defaults: |-
   DRUPAL_NAME={{ cops_drupal_name }}
   COMPOSE_PROJECT_NAME={{cops_drupal_composename}}
   CONTROL_COMPOSE_FILES={{cops_drupal_compose_files|join(' ')}}
+  COMPOSE_FILES={{cops_drupal_compose_files|join(':')}}
   CI_COMMIT_SHA={{cops_drupal_gitref}}
   DRUPAL_IMAGE={{ cops_drupal_docker_image }}
   DRUPAL_IMAGE_VERSION={{cops_drupal_docker_tag}}
