@@ -11,7 +11,7 @@
   - "{{cops_drupal_dir}}/local/backup/setup"
 - debug: {msg: "{{ansible_user}}"}
   register: remote_ansible_user
-- name: Synch ronise files inside the environment (deleguation)
+- name: Synchronise files inside the environment (deleguation)
   delegate_to: "localhost"
   synchronize:
     compress: false
@@ -52,6 +52,7 @@
   delay: 10
   when:
   - "cops_drupal_pull|copsf_asbool"
+# systemd service definition and (de)activation
 - include_role: {name: corpusops.roles/docker_compose_service}
   vars:
     _docker_compose_service:
@@ -60,6 +61,16 @@
       project: "{{cops_drupal_composename}}"
       restart: "on-failure"
   tags: [service]
+# start maintenance mode
+- shell: |
+    set -ex
+    cd "{{cops_drupal_dir}}"
+    {{cops_drupal_dc}} run --rm -T -u root nginx /bin/bash -ec "touch /code/app/var/private/MAINTENANCE"
+# suspend cron tasks
+- shell: |
+    set -ex
+    cd "{{cops_drupal_dir}}"
+    {{cops_drupal_dc}} run --rm -T -u drupal cron /bin/bash -ec "touch /code/app/var/private/SUSPEND_CRONS"
 # ensure manually handled services are booted
 # to handle sidekar volumes refresh accuratly
 - shell: |
@@ -151,3 +162,13 @@
     set -ex
     cd "{{cops_drupal_dir}}"
     {{cops_drupal_dc}} exec -T -u drupal drupal /bin/bash -c "NONINTERACTIVE=1 bin/post_update.sh"
+# remove maintenance mode ----
+- shell: |
+    set -ex
+    cd "{{cops_drupal_dir}}"
+    {{cops_drupal_dc}} run --rm -T -u root nginx /bin/bash -ec "rm -f /code/app/var/private/MAINTENANCE"
+# re-enable crons
+- shell: |
+    set -ex
+    cd "{{cops_drupal_dir}}"
+    {{cops_drupal_dc}} run --rm -T -u drupal cron /bin/bash -ec "rm -f /code/app/var/private/SUSPEND_CRONS"
