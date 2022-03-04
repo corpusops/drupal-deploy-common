@@ -1,3 +1,5 @@
+{{ $xdebug_enabled := .Env.PHP_XDEBUG_ENABLED | default "1" }}
+{{ if eq $xdebug_enabled "1" }}
 ; Enable xdebug extension module
 zend_extension=xdebug.so
 
@@ -27,4 +29,4 @@ xdebug.remote_port = {{ .Env.PHP_XDEBUG_PORT }}
 xdebug.trace_enable_trigger = {{ .Env.PHP_XDEBUG_PROFILER_ENABLE_TRIGGER }}
 xdebug.trace_format = 1
 xdebug.trace_output_dir ="/tmp"
-
+{{ end }}
