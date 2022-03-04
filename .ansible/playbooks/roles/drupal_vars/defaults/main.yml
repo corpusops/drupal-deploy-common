@@ -107,6 +107,7 @@ cops_drupal_php_max_workers: "10"
 cops_drupal_php_max_spare_workers: "5"
 cops_drupal_php_min_spare_workers: "3"
 cops_drupal_php_apcu_enabled: "1"
+cops_drupal_php_xdebug_enabled: "0"
 cops_drupal_php_opcache_enabled: "1"
 cops_drupal_docker_env_freeform: |-
   {{ cops_drupal_docker_env_defaults}}
@@ -199,6 +200,7 @@ cops_drupal_dotenv_defaults: |-
   PHP_MAX_SPARE_WORKERS={{ cops_drupal_php_max_spare_workers }}
   PHP_MIN_SPARE_WORKERS={{ cops_drupal_php_min_spare_workers }}
   PHP_APCU_ENABLED={{ cops_drupal_php_apcu_enabled }}
+  PHP_XDEBUG_ENABLED={{ cops_drupal_php_xdebug_enabled }}
   PHP_OPCACHE_ENABLED={{ cops_drupal_php_opcache_enabled }}
   PROJECT_ENV={{ cops_drupal_project_env }}
   # security
