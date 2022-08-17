@@ -37,9 +37,10 @@ MAINTENANCE_FLAG="${WWW_DIR}/MAINTENANCE"
 
 # System User
 APP_USER="${APP_USER:-drupal}"
-APP_GROUP="${APP_GROUP:-drupal}"
+APP_GROUP="${APP_GROUP:-$APP_USER}"
+PHP_GROUP="${PHP_GROUP:-apache}"
 USER="${APP_USER}"
-GROUP="${APP_GROUP}"
+GROUP="${PHP_GROUP}"
 
 # Locale to set
 LOCALE="fr"

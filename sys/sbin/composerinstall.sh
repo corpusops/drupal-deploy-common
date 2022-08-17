@@ -45,7 +45,7 @@ export PROJECT_DIR
 
 export APP_TYPE="${APP_TYPE:-drupal}"
 export APP_USER="${APP_USER:-$APP_TYPE}"
-export APP_GROUP="$APP_USER"
+export APP_GROUP="${APP_GROUP:-$APP_USER}"
 
 
 if [ "x${SHELL_USER}" = "x${APP_USER}" ]; then
