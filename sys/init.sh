@@ -1,5 +1,4 @@
 #!/bin/bash
-
 # If you need more debug play with these variables:
 # export NO_STARTUP_LOGS=
 # export SHELL_DEBUG=1
@@ -43,7 +42,8 @@ if [ -e /code/app ]; then
 fi
 export PROJECT_DIR
 # activate shell debug if SDEBUG is set
-if [[ -n $SDEBUG ]];then set -x;fi
+VDEBUG=""
+if [[ -n $SDEBUG ]];then set -x;VDEBUG="v";fi
 
 DEFAULT_IMAGE_MODE=phpfpm
 
@@ -69,14 +69,17 @@ NO_IMAGE_SETUP="${NO_IMAGE_SETUP:-"1"}"
 FORCE_IMAGE_SETUP="${FORCE_IMAGE_SETUP:-"1"}"
 SKIP_SERVICES_SETUP="${SKIP_SERVICES_SETUP-}"
 IMAGE_SETUP_MODES="${IMAGE_SETUP_MODES:-"fg|phpfpm"}"
+export FPM_LOGS_DIR="${FPM_LOGS_DIR:-/logs/phpfpm}"
+
 
 FINDPERMS_PERMS_DIRS_CANDIDATES="${FINDPERMS_PERMS_DIRS_CANDIDATES:-"var/public var/private"}"
 FINDPERMS_OWNERSHIP_DIRS_CANDIDATES="${FINDPERMS_OWNERSHIP_DIRS_CANDIDATES:-"var/public var/private"}"
 export APP_TYPE="${APP_TYPE:-drupal}"
 export APP_USER="${APP_USER:-$APP_TYPE}"
-export APP_GROUP="$APP_USER"
+export APP_GROUP="${APP_GROUP:-$APP_USER}"
+export PHP_GROUP="${PHP_GROUP:-apache}"
 # directories created and set on user ownership at startup
-export USER_DIRS=". public private"
+export USER_DIRS=". public private $FPM_LOGS_DIR"
 SHELL_USER=${SHELL_USER:-${APP_USER}}
 
 # Drupal variables
@@ -98,12 +101,12 @@ export INIT_HOOKS_DIR="${INIT_HOOKS_DIR:-/code/sys/scripts/hooks}"
 export DO_DRUPAL_SETTINGS_ENFORCEMENT=${DO_DRUPAL_SETTINGS_ENFORCEMENT-1}
 
 
-debuglog() {
-    if [[ -n "$DEBUG" ]];then echo "$@" >&2;fi
-}
-
 log() {
     echo "$@" >&2;
+}
+
+debuglog() {
+    if [[ -n "$DEBUG" ]];then log "$@";fi
 }
 
 vv() {
@@ -174,7 +177,7 @@ execute_hooks() {
 
 fix_settings_perms() {
     if [ -e /code/app/www/sites/default/settings.php ];then
-        chown drupal:drupal "/code/app/www/sites/default/settings.php"
+        chown ${APP_USER}:${PHP_GROUP} "/code/app/www/sites/default/settings.php"
         chmod u+w "/code/app/www/sites/default/settings.php"
     fi
 }
@@ -190,29 +193,73 @@ configure() {
     if [[ -n $NO_CONFIGURE ]];then return 0;fi
     for i in $USER_DIRS;do
         if [ ! -e "$i" ];then mkdir -p "$i" >&2;fi
-        chown $APP_USER:$APP_GROUP "$i"
+        chown $APP_USER:$PHP_GROUP "$i"
     done
     if (find /etc/sudoers* -type f >/dev/null 2>&1);then chown -Rf root:root /etc/sudoers*;fi
-
     # copy only if not existing template configs from common deploy project
     # and only if we have that common deploy project inside the image
-    if [ ! -e etc ];then mkdir etc;fi
-    for i in sys/etc local/*deploy-common/etc local/*deploy-common/sys/etc;do
-        if [ -d $i ];then cp -rfnv $i/* etc >&2;fi
+    # we first  create missing structure, but do not override yet (no clobber)
+    # then override files if they have no pretendants in project customizations
+    if [ ! -e init/etc ];then mkdir init/etc;fi
+    for i in local/*deploy-common/etc local/*deploy-common/sys/etc;do
+        if [ -d $i ];then
+            cp -rfn${VDEBUG} $i/* init/etc
+            while read conffile;do
+                if [ ! -e sys/etc/$conffile ];then
+                    cp -f${VDEBUG} $i/$conffile init/etc/$conffile
+                fi
+            done < <(cd $i && find -type f|sed -re "s/\.\///g")
+        fi
     done
+    cp -rf$VDEBUG sys/etc/* init/etc
     # install with frep any template file to / (eg: logrotate & cron file)
+    cd init
     for i in $(find etc -name "*.frep" -type f |grep -v 'varnish' 2>/dev/null);do
-        log $i
-        d="$(dirname "$i")/$(basename "$i" .frep)" \
-            && di="/$(dirname $d)" \
-            && if [ ! -e "$di" ];then mkdir -pv "$di" >&2;fi \
-            && echo "Generating with frep $i:/$d" >&2 \
-            && frep "$i:/$d" --overwrite
+        d="$(dirname "$i")/$(basename "$i" .frep)"
+        di="/$(dirname $d)"
+        if [ ! -e "$di" ];then mkdir -p${VDEBUG} "$di" >&2;fi
+        debuglog "Generating with frep $i:/$d"
+        frep "$i:/$d" --overwrite
     done
+    cd -
+    # FPMPOOLS:
+    #   - patch logsdirs
+    #   - create pidfile folders
+    while read fpmconf;do
+        sed -i -r\
+        -e "/^(slowlog|error_log|access\.log)/ d" \
+        -e "/\[global\]/ aerror_log = $FPM_LOGS_DIR/fpm.error.log" \
+        $fpmconf
+    done < <(ls -1d /etc/php-fpm.conf /etc/php/*/fpm/php-fpm.conf 2>/dev/null|| true)
+    while read fpmconf;do
+        if (egrep -q "^pid\s*=" $fpmconf);then
+            rpid=$(dirname $(egrep  "^pid\s*=" $fpmconf|head -n1|sed "s/.*=\s*//g"))
+            if [ ! -e $rpid ];then mkdir -p $rpid;fi
+        fi
+    done < <(ls -1d /etc/php-fpm.conf           /etc/php-fpm.d/*.conf \
+                    /etc/php/*/fpm/php-fpm.conf /etc/php/*/fpm/pool.d/*.conf \
+                    2>/dev/null|| true)
+    # support also debian based systems
+    while read poold;do
+        fpmd=$(dirname $poold)
+        phpd=$(dirname $fpmd)
+        rm -rf "$poold" && ln -sf /etc/php-fpm.d "$poold"
+        bexts=""
+        while read ext;do
+            extn=$(basename $ext)
+            extf=$(echo $extn | sed -re "s/[0-9]+-//g")
+            bextn=$(basename $extf .ini)
+            fextf=$phpd/mods-available/$extf
+            if [ ! -e $fextf ];then die "missing php ext: $fextf";fi
+            ln -sf $ext $fextf
+            bexts="$bexts $bextn"
+        done < <(find /etc/php.d -type f)
+        [[ -n $bexts ]] && phpenmod -vALL -sALL $bexts
+    done < <(ls -1d /etc/php*/*/*fpm*/pool.d 2>/dev/null||true)
 
     # regenerate drupal app/.env file
     frep "/code/app/.env.dist.frep:/code/app/.env" --overwrite
-    chown drupal:drupal "/code/app/.env"
+    chown ${APP_USER}:${PHP_GROUP} "/code/app/.env"
     # regenerate drupal app/www/sites/default/settings.php file
     chmod u+w "/code/app/www/sites/default"
     fix_settings_perms
@@ -249,7 +296,7 @@ configure() {
     check_public_files_symlink
 
     if [ -e /code/app/var/nginxwebroot ] && [[ -z ${NO_COLLECT_STATIC} ]]; then
-        echo "Sync webroot for Nginx"
+        debuglog "Sync webroot for Nginx"
         # Sync the webroot to a shared volume with Nginx
         # but do not sync files which is already a shared Nginx volume
         # containing public long term contributions -- except we need the files directory link, just not the content --
@@ -264,17 +311,17 @@ services_setup() {
         if [[ -n $FORCE_IMAGE_SETUP ]] || ( echo $IMAGE_MODE | egrep -q "$IMAGE_SETUP_MODES" ) ;then
             : "continue services_setup"
         else
-            log "No image setup"
+            debuglog "No image setup"
             return 0
         fi
     else
         if [[ -n $SKIP_SERVICES_SETUP ]];then
-            log "Skip image setup"
+            debuglog "Skip image setup"
             return 0
         fi
     fi
     # alpine linux has /etc/crontabs/ and ubuntu based vixie has /etc/cron.d/
-    if [ -e /etc/cron.d ] && [ -e /etc/crontabs ];then cp -fv /etc/crontabs/* /etc/cron.d >&2;fi
+    if [ -e /etc/cron.d ] && [ -e /etc/crontabs ];then cp -f$VDEBUG /etc/crontabs/* /etc/cron.d >&2;fi
 
     # composer install
     if [[ -z ${NO_COMPOSER} ]];then
@@ -317,7 +364,7 @@ fixperms() {
     while read f;do chown $APP_USER:$APP_USER "$f";done < \
         <(find $FINDPERMS_OWNERSHIP_DIRS_CANDIDATES \
           \( -type d -or -type f \) \
-             -and -not \( -user $APP_USER -and -group $APP_GROUP \)  2>/dev/null|sort)
+             -and -not \( -user $APP_USER -and -group $PHP_GROUP \)  2>/dev/null|sort)
 }
 
 #  usage: print this help
@@ -350,12 +397,7 @@ do_fg() {
         && exec gosu $APP_USER php app/www/core/scripts/drupal quick-start $DRUPAL_LISTEN )
 }
 
-do_phpfpm() {
-    (
-        if [ ! -d /run/php-fpm ]; then mkdir /run/php-fpm; fi \
-        && php-fpm -F -R
-    )
-}
+do_phpfpm() { ( php-fpm -F -R ) }
 
 if ( echo $1 | egrep -q -- "--help|-h|help" );then
     usage
@@ -384,23 +426,19 @@ execute_hooks post "$@"
 
 if [[ -z "$@" ]]; then
     if ! ( echo $IMAGE_MODE | egrep -q "$IMAGE_MODES" );then
-        log "Unknown image mode ($IMAGE_MODES): $IMAGE_MODE"
+        debuglog "Unknown image mode ($IMAGE_MODES): $IMAGE_MODE"
         exit 1
     fi
-    log "Running in $IMAGE_MODE mode"
+    debuglog "Running in $IMAGE_MODE mode"
     if [[ "$IMAGE_MODE" = "fg" ]]; then
         do_fg
     else
-        if [[ "$IMAGE_MODE" = "phpfpm" ]]; then
-            do_phpfpm
-        else
-            cfg="/etc/supervisor.d/$IMAGE_MODE"
-            if [ ! -e $cfg ];then
-                log "Missing: $cfg"
-                exit 1
-            fi
-            SUPERVISORD_CONFIGS="/etc/supervisor.d/rsyslog $cfg" exec /bin/supervisord.sh
+        cfg="/etc/supervisor.d/$IMAGE_MODE"
+        if [ ! -e $cfg ];then
+            log "Missing: $cfg"
+            exit 1
         fi
+        SUPERVISORD_CONFIGS="rsyslog $cfg" exec /bin/supervisord.sh
     fi
 else
     if [[ "${1-}" = "shell" ]];then shift;fi
