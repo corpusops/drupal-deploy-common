@@ -115,11 +115,11 @@ RUN bash -exc ': \
     && : "if we found a static dist inside the sys directory, it has been injected during " \
     && :  "the CI process, we just unpack it" \
     && if [ -e sys/statics ];then\
-     while read f;do tar xJvf ${f};done \
+     while read f;do tar xJf ${f};done \
       < <(find sys/statics -name "*.txz" -or -name "*.xz"); \
-     while read f;do tar xjvf ${f};done \
+     while read f;do tar xjf ${f};done \
       < <(find sys/statics -name "*.tbz2" -or -name "*.bz2"); \
-     while read f;do tar xzvf ${f};done \
+     while read f;do tar xzf ${f};done \
       < <(find sys/statics -name "*.tgz" -or -name "*.gz"); \
     fi\
     && rm -rfv sys/statics \
