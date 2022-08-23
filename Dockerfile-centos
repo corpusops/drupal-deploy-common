@@ -104,8 +104,7 @@ ADD          local/drupal-deploy-common/  /code/local/drupal-deploy-common/
 # ==> init contains files from both local sys and common, common cannot override content from local sys
 RUN bash -c 'set -ex \
     && : "connect init.sh" \
-    && find /code -not -user drupal \
-    | while read f;do chown drupal:drupal "$f";done \
+    && find /code -not -user drupal | ( set +x;while read f;do chown drupal:drupal "$f";done; ) \
     && cp -frnv /code/local/drupal-deploy-common/sys/* sys \
     && cp -frnv sys/* init \
     && ln -sf $(pwd)/init/init.sh /init.sh \
