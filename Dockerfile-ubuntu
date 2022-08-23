@@ -143,8 +143,7 @@ RUN bash -exc ': \
     && frep "app/.env.dist.frep:app/.env" --overwrite \
     \
     && : "latest fixperm" \
-    && find $(pwd) -not -user ${APP_USER} \
-       | while read f;do chown ${APP_USER}:${PHP_GROUP} "$f";done \
+    && find $(pwd) -not -user ${APP_USER} | ( set +x;while read f;do chown ${APP_USER}:${PHP_GROUP} "$f";done ) \
     \
     && : "run composer install with --no-scripts switch is to avoid the drupal cache clear." \
     && : "Indeed this one requires a working database" \
