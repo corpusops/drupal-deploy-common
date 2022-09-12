@@ -520,7 +520,7 @@ teleport_pg_restore_flags: >-
 teleport_pg_restore: |-
   {% if teleport_pg_restore_drop_db%}
   ( LANG=C dropdb -U \$POSTGRES_USER \$POSTGRES_DB 2>&1 || /bin/true; ) \
-  | ( egrep -v exist || /bin/true )
+  | ( grep -E -v exist || /bin/true )
   createdb -U \$POSTGRES_USER -O \$POSTGRES_USER -E {{teleport_db_encoding}} \
     \$POSTGRES_DB
   {%endif%}

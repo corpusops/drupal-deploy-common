@@ -1,6 +1,6 @@
 #!/bin/sh
 set -e
-is_on() { echo "$@"|egrep -iq "^(t|y|o|1)"; }
+is_on() { echo "$@"|grep -E -iq "^(t|y|o|1)"; }
 maydryrun() { if [ "x$CERTBOT_DRYRUN" != "x"];then echo "$@" >&2; else "$@";fi; }
 log() { echo "$@">&2; }
 vv() { log "$@";"$@"; }

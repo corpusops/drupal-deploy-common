@@ -101,7 +101,7 @@
     set -ex
     cd "{{cops_drupal_dir}}"
     {% for i in cops_drupal_started_services.split()|reverse %}
-    {{cops_drupal_dc}} ps --services --filter status=running | egrep -q "^{{i}}$"
+    {{cops_drupal_dc}} ps --services --filter status=running | grep -E -q "^{{i}}$"
     {% endfor %}
   retries: 60
   delay: 1
@@ -115,7 +115,7 @@
     ret=
     for i in $(seq 30);do
       if ( {{cops_drupal_dc}} ps --services \
-           --filter status=running | egrep -q "^{{i}}$");then
+           --filter status=running | grep -E -q "^{{i}}$");then
         {{cops_drupal_dc}} up -d --no-deps --remove-orphans --force-recreate {{i}}
         ret=$?
       else
@@ -131,7 +131,7 @@
     set -ex
     cd "{{cops_drupal_dir}}"
     {% for i in cops_drupal_restarted_services.split()|reverse %}
-    {{cops_drupal_dc}} ps --services --filter status=running | egrep -q "^{{i}}$"
+    {{cops_drupal_dc}} ps --services --filter status=running | grep -E -q "^{{i}}$"
     {% endfor %}
   retries: 60
   delay: 1
@@ -145,7 +145,7 @@
     cd "{{cops_drupal_dir}}"
     if [[ -n "{{cops_drupal_docker_tag}}" ]];then
     {% for purge_volume in cops_drupal_purge_volumes %}
-    for v in $(docker volume ls |awk '{print $2 }'|egrep "^{{cops_drupal_composename}}-{{purge_volume}}-"|grep -v {{cops_drupal_docker_tag}});do
+    for v in $(docker volume ls |awk '{print $2 }'|grep -E "^{{cops_drupal_composename}}-{{purge_volume}}-"|grep -v {{cops_drupal_docker_tag}});do
       if ( docker volume inspect $v >/dev/null 2>&1; );then
         if ! ( docker volume rm -f $v; );then
           docker volume inspect $v;exit 1;

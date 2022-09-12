@@ -24,6 +24,6 @@ for f in $(find -L /certificates -name "*.crt" -type f -not -name self.crt 2>/de
     echo "commit ssl cert $f" \
         | nc $HAPROXY_INT_IP $HAPROXY_CPORT
     echo "show ssl cert $f" \
-        | nc $HAPROXY_INT_IP $HAPROXY_CPORT |egrep -i "^(subject|not|filename)"
+        | nc $HAPROXY_INT_IP $HAPROXY_CPORT |grep -E -i "^(subject|not|filename)"
 done
 # vim:set et sts=4 ts=4 tw=0:
