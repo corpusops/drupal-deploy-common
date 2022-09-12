@@ -10,7 +10,7 @@ SHELL_USER=${SHELL_USER-$(whoami)}
 COMPOSER_JSON_CANDIDATES=${COMPOSER_JSON_CANDIDATES:-app/composer.json composer.json}
 TOPDIR_CANDIDATES=${TOPDIR_CANDIDATES:-$SCRIPTSDIR/../.. $SCRIPTSDIR/../../../../ ../}
 DEFAULT_DISABLE_COMPOSER_TLS=""
-if ( egrep -q "centos|red.?hat|suse|ol" /etc/os-release /etc/*-release 2>/dev/null );then
+if ( grep -E -q "centos|red.?hat|suse|ol" /etc/os-release /etc/*-release 2>/dev/null );then
     DEFAULT_DISABLE_COMPOSER_TLS="1"
 fi
 DISABLE_COMPOSER_TLS=${DISABLE_COMPOSER_TLS-${DEFAULT_DISABLE_COMPOSER_TLS-}}

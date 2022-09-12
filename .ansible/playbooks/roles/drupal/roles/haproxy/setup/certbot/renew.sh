@@ -2,7 +2,7 @@
 . "$(dirname $(readlink -f $0))/base"
 hasdone=""
 while :;do
-    for i in $(printenv|egrep "^${CERTBOT_ENV_VAR_PREFIX}"|sed 's;=.*;;'|sort);do
+    for i in $(printenv|grep -E "^${CERTBOT_ENV_VAR_PREFIX}"|sed 's;=.*;;'|sort);do
         hasdone=1
         domains="$( eval "echo \$$i" )"
         domain=$(echo "${domains}"|sed "s/,.*//g" )
@@ -14,7 +14,7 @@ while :;do
                 sed -i -r \
                     -e "s/renew_before_expiry=[\"][^\"]+[\"]/renew_before_expiry=\"$CERTBOT_RENEWAL\"/g" \
                     $dconf
-                # egrep -C2 renew_before_expiry= $dconf >&2
+                # grep -E -C2 renew_before_expiry= $dconf >&2
                 log "--------------------"
             fi;done
             dconf=/etc/letsencrypt/renewal/${domain}.conf
@@ -25,7 +25,7 @@ while :;do
                     -e "/^renew_before_expiry/ d" \
                     -e "1 i\renew_before_expiry = $CERTBOT_RENEWAL" \
                     $dconf
-                # egrep -C2 ^renew_before_expiry $dconf >&2
+                # grep -E -C2 ^renew_before_expiry $dconf >&2
                 log "--------------------"
             fi
         fi

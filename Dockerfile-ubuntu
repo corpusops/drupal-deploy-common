@@ -74,7 +74,7 @@ RUN bash -exc ': \
     && (ls -1d /etc/php*/*/*fpm*/pool.d 2>/dev/null||true)|while read p;do rm -rf "$p";ln -sfv /etc/php-fpm.d $p;done\
     \
     && : "install composer"\
-    && if (echo $COMPOSER_VERSION|egrep -vq "\." );then u="$COMPOSER_DOWNLOAD_URL/composer-${COMPOSER_VERSION}.phar";\
+    && if (echo $COMPOSER_VERSION|grep -E -vq "\." );then u="$COMPOSER_DOWNLOAD_URL/composer-${COMPOSER_VERSION}.phar";\
        else u="$COMPOSER_DOWNLOAD_URL/download/${COMPOSER_VERSION}/composer.phar";fi\
     && curl -sS "$u" -o /usr/local/bin/composer \
     && chmod +x /usr/local/bin/composer \

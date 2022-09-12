@@ -132,7 +132,7 @@ ARG COMPOSER_DOWNLOAD_URL=https://getcomposer.org
 ENV COMPOSER_VERSION=$COMPOSER_VERSION
 RUN bash -c 'set -ex \
     && : "install composer" \
-    && if (echo $COMPOSER_VERSION|egrep -vq "\." );then u="$COMPOSER_DOWNLOAD_URL/composer-${COMPOSER_VERSION}.phar";\
+    && if (echo $COMPOSER_VERSION|grep -E -vq "\." );then u="$COMPOSER_DOWNLOAD_URL/composer-${COMPOSER_VERSION}.phar";\
        else u="$COMPOSER_DOWNLOAD_URL/download/${COMPOSER_VERSION}/composer.phar";fi\
     && curl -sS "$u" -o /usr/local/bin/composer \
     && chmod +x /usr/local/bin/composer \

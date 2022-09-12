@@ -180,14 +180,14 @@ execute_hooks() {
     if [ ! -d "$hdir" ];then return 0;fi
     shift
     while read f;do
-        if ( echo "$f" | egrep -q "\.sh$" );then
+        if ( echo "$f" | grep -E -q "\.sh$" );then
             debuglog "running shell hook($step): $f"
             . "${f}"
         else
             debuglog "running executable hook($step): $f"
             "$f" "$@"
         fi
-    done < <(find "$hdir" -type f -executable 2>/dev/null | egrep -iv readme | sort -V; )
+    done < <(find "$hdir" -type f -executable 2>/dev/null | grep -E -iv readme | sort -V; )
 }
 
 
@@ -248,8 +248,8 @@ configure() {
         $fpmconf
     done < <(ls -1d /etc/php-fpm.conf /etc/php/*/fpm/php-fpm.conf 2>/dev/null|| true)
     while read fpmconf;do
-        if (egrep -q "^pid\s*=" $fpmconf);then
-            rpid=$(dirname $(egrep  "^pid\s*=" $fpmconf|head -n1|sed "s/.*=\s*//g"))
+        if (grep -E -q "^pid\s*=" $fpmconf);then
+            rpid=$(dirname $(grep -E  "^pid\s*=" $fpmconf|head -n1|sed "s/.*=\s*//g"))
             if [ ! -e $rpid ];then mkdir -p $rpid;fi
         fi
     done < <(ls -1d /etc/php-fpm.conf           /etc/php-fpm.d/*.conf \
@@ -326,7 +326,7 @@ configure() {
 #               like database migrations, etc
 services_setup() {
     if [[ -z $NO_IMAGE_SETUP ]];then
-        if [[ -n $FORCE_IMAGE_SETUP ]] || ( echo $IMAGE_MODE | egrep -q "$IMAGE_SETUP_MODES" ) ;then
+        if [[ -n $FORCE_IMAGE_SETUP ]] || ( echo $IMAGE_MODE | grep -E -q "$IMAGE_SETUP_MODES" ) ;then
             : "continue services_setup"
         else
             debuglog "No image setup"
@@ -431,7 +431,7 @@ do_fg() {
 
 do_phpfpm() { ( php-fpm -F -R ) }
 
-if ( echo $1 | egrep -q -- "--help|-h|help" );then
+if ( echo $1 | grep -E -q -- "--help|-h|help" );then
     usage
 fi
 
@@ -453,11 +453,11 @@ pre() {
 execute_hooks pre "$@"
 # only display startup logs when we start in daemon mode
 # and try to hide most when starting an (eventually interactive) shell.
-if ! ( echo "$NO_STARTUP_LOGS" | egrep -iq "^(no?)?$" );then pre 2>/dev/null;else pre;fi
+if ! ( echo "$NO_STARTUP_LOGS" | grep -E -iq "^(no?)?$" );then pre 2>/dev/null;else pre;fi
 execute_hooks post "$@"
 
 if [[ -z "$@" ]]; then
-    if ! ( echo $IMAGE_MODE | egrep -q "$IMAGE_MODES" );then
+    if ! ( echo $IMAGE_MODE | grep -E -q "$IMAGE_MODES" );then
         debuglog "Unknown image mode ($IMAGE_MODES): $IMAGE_MODE"
         exit 1
     fi
