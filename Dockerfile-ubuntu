@@ -2,7 +2,6 @@
 # To slim down the final size, this image absoutly need to be squashed at the end of the build
 # stages:
 # - stage base: install & setup layout
-# - stage composer(base): install dev deps & run composer
 # - stage final(base): copy results files from composer stage
 ARG BASE=corpusops/ubuntu-bare:20.04
 FROM $BASE AS PPAFETCHER
@@ -57,7 +56,6 @@ RUN --mount=type=bind,from=PPAFETCHER,target=/ppa bash -exc ': \
     && apt-get update  -qq \
     && sed -i -re "s/(php-?)[0-9]\.[0-9]+/\1$PHP_VER/g" apt.txt \
     && apt-get install -qq -y $(grep -vE "^\s*#" apt.txt|tr "\n" " ") \
-    && php --version \
     && apt-get clean all && apt-get autoclean && rm -rf /var/lib/apt/lists/* \
   '
 
@@ -92,6 +90,7 @@ RUN bash -exc ': \
     && : "set locale"\
     && export INSTALL_LOCALES="${LANG}" INSTALL_DEFAULT_LOCALE="${LANG}" \
     && if [ -e /usr/bin/setup_locales.sh ];then /usr/bin/setup_locales.sh; \
+       elif [ -e /bin/setup_locales.sh ];then /bin/setup_locales.sh; \
        else localedef -i ${LANGUAGE} -c -f ${CHARSET} -A /usr/share/locale/locale.alias ${LANGUAGE}.${CHARSET};\
        fi\
     \
