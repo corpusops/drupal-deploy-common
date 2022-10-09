@@ -3,7 +3,7 @@
 # stages:
 # - stage base: install & setup layout
 # - stage final(base): copy results from build to a ligther image
-ARG BASE=corpusops/debian-bare:11
+ARG BASE=corpusops/ubuntu-bare:20.04
 FROM $BASE AS base
 ARG APP_GROUP=
 ARG APP_TYPE=drupal
@@ -39,18 +39,20 @@ ENV \
 
 WORKDIR /code
 USER root
-ADD apt.txt ./
+ADD yum.txt ./
 RUN bash -exc ': \
-    && : "bring back ppa conf" \
-    && apt-get update && apt-get -y install apt-transport-https ca-certificates curl \
-    && wget -O /etc/apt/trusted.gpg.d/php.gpg https://packages.sury.org/php/apt.gpg \
-    && echo "deb https://packages.sury.org/php/ $( . /etc/os-release && echo $VERSION_CODENAME) main" > /etc/apt/sources.list.d/php.list \
     \
     && : "install packages" \
-    && apt-get update  -qq \
-    && sed -i -re "s/(php-?)[0-9]\.[0-9]+/\1$PHP_VER/g" apt.txt \
-    && apt-get install -qq -y $(sed -re "/$DEV_DEPENDENCIES_PATTERN/,$ d" apt.txt|grep -vE "^\s*#"|tr "\n" " " ) \
-    && apt-get clean all && apt-get autoclean && rm -rf /var/lib/apt/lists/* \
+    && sed -i -re "s/(php-?)[0-9]\.[0-9]+/\1$PHP_VER/g" yum.txt \
+    && yum -y update \
+    && yum -y install epel-release \
+    && yum -y install http://rpms.remirepo.net/enterprise/remi-release-7.rpm \
+    && yum -y install -y https://download.postgresql.org/pub/repos/yum/reporpms/EL-7-x86_64/pgdg-redhat-repo-latest.noarch.rpm \
+    && yum install -y yum-utils yum-priorities \
+    && yum -y update \
+    && yum-config-manager --enable remi-php${PHP_VER_NO_DOT} \
+    && yum -y install $(sed -re "/$DEV_DEPENDENCIES_PATTERN/,$ d" yum.txt|grep -vE "^\s*#"|tr "\n" " " ) \
+    && yum clean all \
   '
 
 RUN bash -exc ': \
@@ -96,9 +98,10 @@ RUN bash -exc ': \
 FROM base AS appsetup
 RUN bash -exc ': \
     && : "install dev packages" \
-    && apt-get update  -qq \
-    && apt-get install -qq -y $(cat apt.txt|grep -vE "^\s*#"|tr "\n" " " ) \
-    && apt-get clean all && apt-get autoclean && rm -rf /var/lib/apt/lists/* \
+    && yum -y update \
+    && yum-config-manager --enable remi-php${PHP_VER_NO_DOT} \
+    && yum -y install $(cat yum.txt|grep -vE "^\s*#"|tr "\n" " " ) \
+    && yum clean all \
     '
 # Potential ssh keys for application user
 ADD --chown=${APP_USER}:${APP_GROUP} keys/*                           /home/${APP_USER}/.ssh/
@@ -169,6 +172,8 @@ RUN bash -exc ': \
 FROM base AS runner
 RUN --mount=type=bind,from=final,target=/s bash -exc ': \
     && for i in /init.sh /home/ /code/;do rsync -aAH --numeric-ids /s${i} ${i};done \
+    && : "Fix crond & pam error in RedHat --FAILED to open PAM security session (Cannot make/remove an entry for the specified session)--" \
+    && sed -i "/session    required   pam_loginuid.so/c\#session    required   pam_loginuid.so" /etc/pam.d/crond \
     '
 WORKDIR /code/app
 # image will drop privileges itself using gosu at the end of the entrypoint
