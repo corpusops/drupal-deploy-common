@@ -2,7 +2,7 @@
 # To slim down the final size, this image absoutly need to be squashed at the end of the build
 # stages:
 # - stage base: install & setup layout
-# - stage final(base): copy results files from composer stage
+# - stage final(base): copy results from build to a ligther image
 ARG BASE=corpusops/ubuntu-bare:20.04
 FROM $BASE AS PPAFETCHER
 USER root
@@ -12,7 +12,7 @@ RUN bash -exc '\
     && add-apt-repository -yu ppa:ondrej/php'
 
 ARG BASE=corpusops/ubuntu-bare:20.04
-FROM $BASE AS BASE
+FROM $BASE AS base
 ARG APP_GROUP=
 ARG APP_TYPE=drupal
 ARG APP_USER=
@@ -55,7 +55,7 @@ RUN --mount=type=bind,from=PPAFETCHER,target=/ppa bash -exc ': \
     && : "install packages" \
     && apt-get update  -qq \
     && sed -i -re "s/(php-?)[0-9]\.[0-9]+/\1$PHP_VER/g" apt.txt \
-    && apt-get install -qq -y $(grep -vE "^\s*#" apt.txt|tr "\n" " ") \
+    && apt-get install -qq -y $(sed -re "/$DEV_DEPENDENCIES_PATTERN/,$ d" apt.txt|grep -vE "^\s*#"|tr "\n" " " ) \
     && apt-get clean all && apt-get autoclean && rm -rf /var/lib/apt/lists/* \
   '
 
@@ -99,6 +99,13 @@ RUN bash -exc ': \
     && ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone \
     '
 
+FROM base AS appsetup
+RUN bash -exc ': \
+    && : "install dev packages" \
+    && apt-get update  -qq \
+    && apt-get install -qq -y $(cat apt.txt|grep -vE "^\s*#"|tr "\n" " " ) \
+    && apt-get clean all && apt-get autoclean && rm -rf /var/lib/apt/lists/* \
+    '
 # Potential ssh keys for application user
 ADD --chown=${APP_USER}:${APP_GROUP} keys/*                           /home/${APP_USER}/.ssh/
 ADD --chown=${APP_USER}:${PHP_GROUP} app                              ./app
@@ -115,6 +122,7 @@ ADD --chown=${APP_USER}:${PHP_GROUP} local/${APP_TYPE}-deploy-common/ ./local/${
 # common -> sys
 # sys -> init
 # ==> init contains files from both local sys and common, common cannot override content from local sys
+FROM appsetup AS final
 RUN bash -exc ': \
     && : "alter rights and ownerships of ssh keys" \
     && chmod 0700 /home/${APP_USER}/.ssh \
@@ -164,7 +172,11 @@ RUN bash -exc ': \
     && ( rm -rvf /root/.cache/composer /home/*/.cache/composer ) || true \
     '
 
-# image will drop privileges itself using gosu
+FROM base AS runner
+RUN --mount=type=bind,from=final,target=/s bash -exc ': \
+    && for i in /init.sh /home/ /code/;do rsync -aAH --numeric-ids /s${i} ${i};done \
+    '
 WORKDIR /code/app
-ENTRYPOINT []
+# image will drop privileges itself using gosu at the end of the entrypoint
 CMD "/init.sh"
+
