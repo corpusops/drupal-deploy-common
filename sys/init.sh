@@ -251,6 +251,8 @@ configure() {
             bextn=$(basename $extf .ini)
             fextf=$phpd/mods-available/$extf
             if [ ! -e $fextf ];then die "missing php ext: $fextf";fi
+            # remove any debian based conf as we override it with our custom priority numbers
+            ( rm -f $phpd/mods-*/*${bextn}* $phpd/*/conf.d/*${bextn}* $phpd/*/mods-*/*${bextn}* >/dev/null 2>&1 || true )
             ln -sf $ext $fextf
             bexts="$bexts $bextn"
         done < <(find /etc/php.d -type f)
