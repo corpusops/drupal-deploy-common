@@ -14,6 +14,7 @@ init() {
     fi
 }
 [[ -z ${NO_INIT} ]] && init
+cd $SOURCEDIR
 if [[ -n "$@" ]];then
     exec $@
 else
