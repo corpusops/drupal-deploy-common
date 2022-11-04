@@ -1,11 +1,20 @@
 # syntax=docker/dockerfile:1.3
-ARG PYTHON_BASE=corpusops/python:3-slim
-FROM $PYTHON_BASE
-RUN apt-get update -qq
+ARG BASE=corpusops/ubuntu:20.04
+FROM $BASE
+ARG PY_VER=3.8
+ENV PY_VER=$PY_VER
+ADD apt.txt ./
 ADD docs/apt.txt ./
-RUN apt-get install -qq $(cat apt.txt)
+RUN bash -exc ': \
+    && : "install dev packages" \
+    && apt-get update  -qq \
+    && sed -i -re "s/(python-?)[0-9]\.[0-9]+/\1$PY_VER/g" apt.txt \
+    && apt-get install -qq -y $(cat apt.txt |grep -vE "^\s*#"|tr "\n" " " )  \
+    && apt-get clean all && apt-get autoclean && rm -rf /var/lib/apt/lists/* \
+   '
+RUN bash -ec "if ! ( python${PY_VER} -m pip --version; );then python${PY_VER} <( curl https://bootstrap.pypa.io/get-pip.py; );fi && python${PY_VER} -m pip --version"
 ADD docs/req*.txt ./
-RUN pip install --no-cache-dir -r requirements.txt
+RUN python${PY_VER} -m pip install -r requirements.txt
 ADD docs /code/docs
 ADD local /code/local/
 WORKDIR /code/docs
