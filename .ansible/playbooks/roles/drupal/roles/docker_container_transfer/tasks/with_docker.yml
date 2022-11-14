@@ -39,5 +39,5 @@
       "{{oh}}:{{item.value.origin_path}}" "{{cp}}"
     EOF
   args: {executable: /bin/bash}
-  no_log: "{{not cops_drupal_teleport_debug|default(False)}}"
+  no_log: "{{not teleport_debug|default(False)}}"
   tags: [teleport_xfer, teleport_xfer_dest]
