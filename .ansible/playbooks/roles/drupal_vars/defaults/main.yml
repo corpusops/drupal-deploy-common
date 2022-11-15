@@ -360,7 +360,7 @@ teleport_sync_files_default:
     container: "{{teleport_app_container}}"
     container_path: "{{teleport_paths.dest_privatedocs}}/"
   private:
-    o"rigin_path: "{{teleport_paths.origin_private}}/"
+    origin_path: "{{teleport_paths.origin_private}}/"
     container: "{{teleport_app_container}}"
     container_path: "{{teleport_paths.dest_private}}/"
     rsync_extra_args: "--exclude docs"
