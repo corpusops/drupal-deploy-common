@@ -6,7 +6,7 @@
   register: sk
 - name: "{{item.key}}: synchronise to container {{item.value.container}}: {{item.value.container_path}}"
   shell: |-
-    set -ex
+    set -e{{teleport_xverbose}}
     set -o pipefail
     {% set d = teleport_debug|default(false) %}
     {% set dr = item.value.dryrun|default(teleport_dryrun) %}
@@ -31,7 +31,7 @@
       elif (apk --version &>/dev/null);then apk update && apk add -f \$pkgs
       fi
     fi
-    if [ ! -e "{{cp}}" ];then mkdir -vp "{{cp}}";fi
+    if [ ! -e "{{cp}}" ];then mkdir -{{teleport_verbose}}p "{{cp}}";fi
     {{dr and 'echo ' or ''}}{{rsync}} \
       {% if sshargs %}-e "{{ssh}} {{sshargs}}"{%endif%} \
       {{rsync_args}} \

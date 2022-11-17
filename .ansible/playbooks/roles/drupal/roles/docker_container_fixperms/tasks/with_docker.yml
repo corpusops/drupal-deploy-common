@@ -4,16 +4,16 @@
     {% set p = item.value.container_path %}
     {% set o = item.value.owner|default(cops_drupal_medias_owner) %}
     {% set g = item.value.group|default(cops_drupal_medias_group) %}
-    set -ex
+    set -e{{teleport_xverbose}}
     cd "{{teleport_wd}}"
     cat|COMPOSE_INTERACTIVE_NO_CLI= \
     {{teleport_dc}} run --no-deps --rm -u root \
-      --entrypoint bash {{item.value.container}} -ex - <<EOF
-    while read f;do chown -Rvf {{o}}:{{g}} "\$f"; done < \
+      --entrypoint bash {{item.value.container}} -e{{teleport_xverbose}} - <<EOF
+    while read f;do chown -R{{teleport_verbose}}f {{o}}:{{g}} "\$f"; done < \
       <(find "{{p}}" \( -not -uid {{o}} -or -not -gid {{g}} \) )
-    while read f;do chmod -v o+x "\$f";done < \
+    while read f;do chmod {{teleport_vverbose}} o+x "\$f";done < \
       <(find "{{p}}" -type d -and -not -perm -o+x)
-    while read f;do chmod -v o+rx "\$f";done < \
+    while read f;do chmod {{teleport_vverbose}} o+rx "\$f";done < \
       <(find "{{p}}" -type f -and -not -perm -o+rx)
     EOF
   args: {executable: /bin/bash}
