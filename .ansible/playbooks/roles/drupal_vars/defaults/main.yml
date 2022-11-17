@@ -573,3 +573,9 @@ cops_drupal_haproxy_env: |-
   CERTBOT_HTTP01_CNS_1={{','.join(cops_drupal_hostnames)}}
 cops_drupal_certbot_dryrun: "1"
 cops_drupal_hostnames: "{{([cops_drupal_hostname]+cops_drupal_alternate_hostnames)|copsf_uniquify}}"
+teleport_debug: false
+teleport_is_verbose: "{{teleport_debug}}"
+teleport_verbose: "{{teleport_is_verbose and 'v' or ''}}"
+teleport_vverbose: "{{teleport_is_verbose  and '-v' or ''}}"
+teleport_xverbose: "{{teleport_is_verbose and 'x' or ''}}"
+Teleport_vxverbose: "{{teleport_is_verbose  and '-x' or ''}}"
