@@ -115,11 +115,13 @@ cops_drupal_docker_env_defaults: ""
 # free form for params inside dockerenv
 cops_drupal_http_listen: "0.0.0.0"
 cops_drupal_http_port: "80"
+cops_drupal_https_port: "443"
 cops_drupal_api_listen: "127.0.0.1"
 cops_drupal_api_port: "9000"
 cops_drupal_dotenv_defaults: |-
   DRUPAL_HTTP_LISTEN={{cops_drupal_http_listen}}
   DRUPAL_HTTP_PORT={{cops_drupal_http_port}}
+  DRUPAL_HTTPS_PORT={{cops_drupal_https_port}}
   DRUPAL_API_LISTEN={{cops_drupal_api_listen}}
   DRUPAL_API_PORT={{cops_drupal_api_port}}
   PROJECT_PACKAGE={{ cops_drupal_name }}
