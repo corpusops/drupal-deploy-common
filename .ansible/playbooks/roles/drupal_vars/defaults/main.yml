@@ -522,6 +522,25 @@ teleport_stop_script_default: |-
 teleport_stop_script: "{{teleport_stop_script_default}}"
 teleport_reset_db_script: "{{teleport_reset_db_script_default}}"
 teleport_post_reset_script: "{{teleport_post_reset_script_default}}"
+teleport_post_restart_services: "db"
+teleport_post_force_restart_services: "setup-postgres setup-mysql redis memcached"
+teleport_restart_dependant_services: |-
+  set -e
+  cd "{{teleport_wd}}"
+  has_service() { {{teleport_dc}} config |grep -qE "^   +${1}:"; }
+  log() { echo "$@" >&2; }
+  restarted_services="{{teleport_post_restart_services}}"
+  frestarted_services="{{teleport_post_force_restart_services}}"
+  restart_service() {
+    service="$1"
+    shift
+    log "restart service: $service"
+    if ( has_service $service );then
+      {{teleport_dc}} up -d --no-deps ${@} $service
+    fi
+  }
+  for s in $restarted_services;do restart_service $s;done
+  for s in $frestarted_services;do restart_service $s --force-recreate;done
 teleport_db_restart_script: |-
   set -ex
   cd "{{teleport_wd}}"

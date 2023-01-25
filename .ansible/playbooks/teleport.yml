@@ -78,6 +78,11 @@
   - when: "teleport_post_reset|default(true)"
     tags: [reset, post_reset]
     block:
+    - when: "teleport_do_restart_dependant_services|default(true)"
+      name: "Post reset restart dependant services"
+      shell: "{{teleport_restart_dependant_services}}"
+      args: {executable: /bin/bash}
+      tags: [reset, post_restart_dependant_services]
     - when: "teleport_do_post_reset_script|default(true)"
       name: "Post reset"
       shell: "{{teleport_post_reset_script}}"
