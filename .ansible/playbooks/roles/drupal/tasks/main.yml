@@ -65,7 +65,7 @@
 - shell: |
     set -ex
     cd "{{cops_drupal_dir}}"
-    {{cops_drupal_dc}} run --rm -T -u root nginx /bin/bash -ec "touch /code/app/var/private/MAINTENANCE"
+    {{cops_drupal_dc}} run --rm -T -u root drupal /bin/bash -ec "touch /code/app/var/private/MAINTENANCE"
 # suspend cron tasks
 - shell: |
     set -ex
@@ -166,7 +166,7 @@
 - shell: |
     set -ex
     cd "{{cops_drupal_dir}}"
-    {{cops_drupal_dc}} run --rm -T -u root nginx /bin/bash -ec "rm -f /code/app/var/private/MAINTENANCE"
+    {{cops_drupal_dc}} run --rm -T -u root drupal /bin/bash -ec "rm -f /code/app/var/private/MAINTENANCE"
 # re-enable crons
 - shell: |
     set -ex
