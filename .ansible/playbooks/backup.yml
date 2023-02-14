@@ -22,7 +22,7 @@
       changed_when: False
     - set_fact:
         cacheable: false
-        backuphastobedone: "{{skip_backup|default(backuphastobedonetest.rc==0)}}"
+        backuphastobedone: "{{not skip_backup|default(not backuphastobedonetest.rc==0)}}"
     - include_role: {name: "corpusops.roles/project_backup", public: false}
       when: backuphastobedone
     vars:
