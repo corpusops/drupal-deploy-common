@@ -137,7 +137,7 @@ _shell() {
         pre="for i in $NVM_PATHS;do \
         if [ -e \$i/$NVMRC ] && ( nvm --help > /dev/null );then \
             printf \"\ncd \$i && nvm install \
-            && nvm use && cd - && break\n\">>\$HOME/.control_bash_rc; \
+            && nvm use && cd - >/dev/null 2>&1 && break\n\">>\$HOME/.control_bash_rc; \
         fi;done $pre"
     fi
     if [[ -z "$NO_VIRTUALENV" ]];then
@@ -221,7 +221,7 @@ configure() {
         debuglog "Generating with frep $i:/$d"
         frep "$i:/$d" --overwrite
     done
-    cd -
+    cd - >/dev/null 2>&1
     # FPMPOOLS:
     #   - patch logsdirs
     #   - create pidfile folders
