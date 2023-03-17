@@ -124,7 +124,7 @@ cops_drupal_db_uri: "{{cops_drupal_db_driver}}://{{cops_drupal_db_user}}{{cops_d
 cops_drupal_psql_uri: "postgres://{{cops_drupal_db_user}}{{cops_drupal_db_password and ':{0}'.format(cops_drupal_db_password) or ''}}@{{cops_drupal_db_host}}{{cops_drupal_db_port and ':{0}'.format(cops_drupal_db_port) or ''}}/{{cops_drupal_db_name}}"
 cops_drupal_site_mail: "contact@{{ cops_drupal_hostname }}"
 cops_drupal_site_adminmail: "sysadmin+{{ cops_drupal_name }}@{{ cops_drupal_hostname }} "
-cops_durpal_php_memory_limit: "128M"
+cops_drupal_php_memory_limit: "128M"
 cops_drupal_dotenv_defaults: |-
   DRUPAL_HTTP_LISTEN={{cops_drupal_http_listen}}
   DRUPAL_HTTP_PORT={{cops_drupal_http_port}}
@@ -173,7 +173,7 @@ cops_drupal_dotenv_defaults: |-
   ABSOLUTE_URL_PORT=
   NGINX_SERVERNAME={{ cops_drupal_hostname }}
   NGINX_SERVER_ALIASES={{ cops_drupal_alternate_hostnames | join(' ')}}
-  PHP_MEMORY_LIMIT={{ cops_symfony_php_memory_limit }}
+  PHP_MEMORY_LIMIT={{ cops_drupal_php_memory_limit }}
   {% if cops_drupal_use_varnish %}
   # Varnish
   VARNISH__HTTP_PROTECT_USER=
