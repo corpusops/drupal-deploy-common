@@ -54,6 +54,15 @@
       shell: "{{teleport_db_restart_script}}"
       args: {executable: /bin/bash}
       tags: [reset, db_restart]
+    - when: "teleport_do_db_wait|default(true)"
+      name: "DB restart"
+      shell: "{{teleport_db_wait_script}}"
+      args: {executable: /bin/bash}
+      register: dbwait
+      until: ["'the database system is starting up' not in dbwait.stdout"]
+      retries: 120
+      delay: 1
+      tags: [reset, db_wait]
     - when: "teleport_do_load_dump|default(true)"
       name: "Load dump"
       shell: "{{teleport_reset_db_script}}"

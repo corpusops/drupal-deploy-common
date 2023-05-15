@@ -615,6 +615,14 @@ teleport_restart_dependant_services: |-
   }
   for s in $restarted_services;do restart_service $s;done
   for s in $frestarted_services;do restart_service $s --force-recreate;done
+teleport_db_wait_script: "{{teleport_db_wait_script_default}}"
+teleport_db_wait_script_default: |-
+  set -ex
+  cd "{{teleport_wd}}"
+  test -e "{{cops_drupal_dir}}/.env"
+  {{lookup('vars', 'teleport_reset_db_script_wait_'+teleport_db_mode)}}
+teleport_reset_db_script_wait_postgres: |-
+  ./control.sh dcompose exec --rm --entrypoint bash db -c 'echo select 1|psql -v ON_ERROR_STOP=1 $PSQL_URI'
 teleport_db_restart_script: |-
   set -ex
   cd "{{teleport_wd}}"
