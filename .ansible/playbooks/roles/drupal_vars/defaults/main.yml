@@ -18,7 +18,8 @@ cops_drupal_tld_domain: example.com
 cops_drupal_mail_domain: "{{ cops_drupal_tld_domain }}"
 cops_drupal_default_gitref: "master"
 cops_drupal_gitref: "{{cops_drupal_default_gitref}}"
-cops_drupal_dir: "/srv/docker/{{cops_drupal_name}}"
+cops_drupal_dir_default: "/srv/docker/{{cops_drupal_name}}"
+cops_drupal_dir: "{{cops_drupal_dir_default}}"
 cops_drupal_hostname: "{{cops_drupal_deploy_env}}-{{cops_drupal_name}}.{{cops_drupal_tld_domain}}"
 cops_drupal_alternate_hostnames: [".{{cops_drupal_tld_domain}}"]
 cops_drupal_secret_key: "SuperSecret"
@@ -447,7 +448,7 @@ ansible_bastion: ""
 cops_drupal_sync_ssh_user_internal: "{% if((cops_drupal_force_sync_ssh_user) or
         (cops_drupal_sync_ssh_user and (cops_drupal_force_sync_ssh_user == True))
     )%}{{ cops_drupal_sync_ssh_user or ansible_user or '' }}{% endif %}"
-teleport_env_ssh_deploy_key: "/srv/docker/{{cops_drupal_name}}/local/.ssh/deploy"
+teleport_env_ssh_deploy_key: "{{cops_drupal_dir_default}}/local/.ssh/deploy"
 teleport_bastion_ssh_deploy_key: "{{teleport_env_ssh_deploy_key}}"
 teleport_origin_viabastion_sshargs: "{% set d = hostvars[groups[teleport_origin][0]] %}{%if ansible_bastion%}-o ProxyCommand=\"ssh {% if teleport_bastion_ssh_deploy_key %}-i {{teleport_bastion_ssh_deploy_key}} {%endif%}-o IdentitiesOnly=yes -q -W {{d.ansible_host}}:{{d.ansible_port|default('22')}} {{ansible_bastion}} {%if ansible_bastion_user%}-l {{ansible_bastion_user}}{%endif%} -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no\" {%endif%}"
 teleport_destination_viabastion_sshargs: "{% set d = hostvars[groups[teleport_destination][0]] %}{%if ansible_bastion%}-o ProxyCommand=\"ssh {% if teleport_bastion_ssh_deploy_key %}-i {{teleport_bastion_ssh_deploy_key}} {%endif%}-o IdentitiesOnly=yes -q -W {{d.ansible_host}}:{{d.ansible_port|default('22')}} {{ansible_bastion}} {%if ansible_bastion_user%}-l {{ansible_bastion_user}}{%endif%} -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no\" {%endif%}"
