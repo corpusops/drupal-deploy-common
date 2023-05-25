@@ -1,5 +1,6 @@
 ---
-- file:
+- tags: [drupal_layout, drupal_docker_sync_files]
+  file:
     state: directory
     mode: "2751"
     path: "{{item}}"
@@ -11,7 +12,8 @@
   - "{{cops_drupal_dir}}/local/backup/setup"
 - debug: {msg: "{{ansible_user}}"}
   register: remote_ansible_user
-- name: Synchronise files inside the environment (deleguation)
+- tags: [drupal_layout, drupal_docker_sync_files]
+  name: Synchronise files inside the environment (deleguation)
   delegate_to: "localhost"
   synchronize:
     compress: false
@@ -22,21 +24,25 @@
     rsync_path: "{{cops_drupal_code_rsync_path}}"
     set_remote_user: "no"
     #update_opts: '--recursive'
-- template:
+- tags: [drupal_docker_envs_gen, drupal_docker_envs_gen_docker_env]
+  template:
     src: "docker.env"
     dest: "{{cops_drupal_dir}}/docker.env"
     mode: "0640"
     trim_blocks: false
-- blockinfile:
+- tags: [drupal_docker_envs_gen, drupal_docker_envs_gen_dotenv]
+  blockinfile:
     create: true
     path: "{{cops_drupal_dir}}/.env"
     content: |-
       {{cops_drupal_dotenv}}
       {{cops_drupal_dotenv_extra}}
     marker: "# ANSIBLE MANAGED BLOCK :: deploy commit :: {mark}"
-- include_tasks: docker_login.yml
+- tags: [drupal_docker_images, drupal_docker_login]
+  include_tasks: docker_login.yml
   with_items: "{{cops_drupal_registries}}"
-- shell: |
+- tags: [drupal_docker_images, drupal_docker_build]
+  shell: |
     set -ex
     cd "{{cops_drupal_dir}}"
     {{cops_drupal_dc}} build {{cops_drupal_build_args}}
@@ -44,7 +50,8 @@
   - "cops_drupal_build|copsf_asbool"
   - "cops_drupal_build_args|copsf_asbool"
 # ensure all images are (re) pulled
-- shell: |
+- tags: [drupal_docker_images, drupal_docker_pull]
+  shell: |
     set -ex
     cd "{{cops_drupal_dir}}"
     {{cops_drupal_dc}} pull
@@ -53,27 +60,30 @@
   when:
   - "cops_drupal_pull|copsf_asbool"
 # systemd service definition and (de)activation
-- include_role: {name: corpusops.roles/docker_compose_service}
+- tags: [drupal_service, drupal_system_service]
+  include_role: {name: corpusops.roles/docker_compose_service}
   vars:
     _docker_compose_service:
       working_directory: "{{cops_drupal_dir}}"
       files: "{{cops_drupal_compose_files}}"
       project: "{{cops_drupal_composename}}"
       restart: "on-failure"
-  tags: [service]
 # start maintenance mode
-- shell: |
+- tags: [drupal_service, drupal_maintenance, drupal_disable_maintenance]
+  shell: |
     set -ex
     cd "{{cops_drupal_dir}}"
     {{cops_drupal_dc}} run --rm -T -u root drupal /bin/bash -ec "touch /code/app/var/private/MAINTENANCE"
 # suspend cron tasks
-- shell: |
+- tags: [drupal_service, drupal_cron, drupal_disable_cron]
+  shell: |
     set -ex
     cd "{{cops_drupal_dir}}"
     {{cops_drupal_dc}} run --rm -T -u drupal cron /bin/bash -ec "touch /code/app/var/private/SUSPEND_CRONS"
 # ensure manually handled services are booted
 # to handle sidekar volumes refresh accuratly
-- shell: |
+- tags: [drupal_service, drupal_restart_service, drupal_do_restart_service]
+  shell: |
     set -ex
     cd "{{cops_drupal_dir}}"
     {% for i in cops_drupal_started_services.split() %}
@@ -86,7 +96,8 @@
     done
     if [ "x$ret" != "x0" ];then echo "{{i}}: failed start";exit 1;fi
     {% endfor %}
-- shell: |
+- tags: [drupal_service, drupal_restart_service, drupal_check_restarted_service]
+  shell: |
     set -ex
     cd "{{cops_drupal_dir}}"
     {% for i in cops_drupal_started_services.split()|reverse %}
@@ -96,7 +107,8 @@
   delay: 1
   register: started_docker_services
   until: "started_docker_services.rc == 0"
-- shell: |
+- tags: [drupal_service, drupal_restart_service, drupal_force_restart_appservices]
+  shell: |
     set -ex
     cd "{{cops_drupal_dir}}"
     {% for i in cops_drupal_restarted_services.split() %}
@@ -114,7 +126,8 @@
     done
     if [ "x$ret" != "x0" ];then echo "{{i}}: failed restart";exit 1;fi
     {% endfor %}
-- shell: |
+- tags: [drupal_service, drupal_restart_service, drupal_check_restarted_appservices]
+  shell: |
     set -ex
     cd "{{cops_drupal_dir}}"
     {% for i in cops_drupal_restarted_services.split()|reverse %}
@@ -126,7 +139,8 @@
   until: "restarted_docker_services.rc == 0"
 ## as we use a named volume for nginx sidekar container, also
 ## purge the obsolete volumes leftover in-between
-- shell: |
+- tags: [drupal_service, drupal_static_volumes_purge]
+  shell: |
     set -ex
     cd "{{cops_drupal_dir}}"
     if [[ -n "{{cops_drupal_docker_tag}}" ]];then
@@ -152,23 +166,27 @@
   - "cops_drupal_purge_volumes|copsf_asbool"
   changed_when: "'purged volume' in purge_volumes.stderr"
 # install drupal website (do nothing if already installed)
-- shell: |
+- tags: [drupal_post_restart, drupal_install_site]
+  shell: |
     set -ex
     cd "{{cops_drupal_dir}}"
     {{cops_drupal_dc}} exec -T -u drupal drupal /bin/bash -c "NONINTERACTIVE=1 DRUPAL_FORCE_INSTALL={{cops_drupal_force_reinstall}} bin/install.sh"
 # Always run the post-update script
 # (database migrations if any & CMI config sync)
-- shell: |
+- tags: [drupal_post_restart, drupal_post_update]
+  shell: |
     set -ex
     cd "{{cops_drupal_dir}}"
     {{cops_drupal_dc}} exec -T -u drupal drupal /bin/bash -c "NONINTERACTIVE=1 bin/post_update.sh"
 # remove maintenance mode ----
-- shell: |
+- tags: [drupal_post_restart, drupal_maintenance, drupal_disable_maintenance]
+  shell: |
     set -ex
     cd "{{cops_drupal_dir}}"
     {{cops_drupal_dc}} run --rm -T -u root drupal /bin/bash -ec "rm -f /code/app/var/private/MAINTENANCE"
 # re-enable crons
-- shell: |
+- tags: [drupal_post_restart, drupal_cron, drupal_enable_cron]
+  shell: |
     set -ex
     cd "{{cops_drupal_dir}}"
     {{cops_drupal_dc}} run --rm -T -u drupal cron /bin/bash -ec "rm -f /code/app/var/private/SUSPEND_CRONS"
