@@ -270,28 +270,20 @@ configure() {
 
 
     # add shortcuts to some binaries on the project if they do not exists
-    if [[ ! -L "$PROJECT_DIR/bin/composerinstall" ]];then
-        if [[ -f "$PROJECT_DIR/bin/composerinstall" ]]; then
-          rm -f "$PROJECT_DIR/bin/composerinstall"
+    for shortcut in composerinstall.sh composer.sh base.sh;do
+        if [[ "$shortcut" = "base.sh" ]];then
+            shortcutlink=$shortcut
+        else
+            shortcutlink=$(basename $shortcut .sh)
         fi
-        ( cd $PROJECT_DIR/bin \
-            && gosu $APP_USER ln -s ../../init/sbin/composerinstall.sh composerinstall )
-    fi
-    if [[ ! -L "$PROJECT_DIR/bin/composer" ]];then
-        if [[ -f "$PROJECT_DIR/bin/composer" ]]; then
-          rm -f "$PROJECT_DIR/bin/composer"
+        if [[ ! -L "$PROJECT_DIR/bin/${shortcutlink}" ]];then
+            if [[ -f "$PROJECT_DIR/bin/${shortcutlink}" ]]; then
+                rm -f "$PROJECT_DIR/bin/${shortcutlink}"
+            fi
+            ( cd $PROJECT_DIR/bin \
+                && gosu $APP_USER ln -s "../../init/sbin/${shortcut}" "${shortcutlink}" )
         fi
-        ( cd $PROJECT_DIR/bin \
-            && gosu $APP_USER ln -s ../../init/sbin/composer.sh composer )
-    fi
-
-    if [[ ! -L "$PROJECT_DIR/bin/base.sh" ]];then
-        if [[ -f "$PROJECT_DIR/bin/base.sh" ]]; then
-          rm -f "$PROJECT_DIR/bin/base.sh"
-        fi
-        ( cd $PROJECT_DIR/bin \
-            && gosu $APP_USER ln -s ../../init/sbin/base.sh base.sh )
-    fi
+    done
 
     # add shortcut from /code/app/www/sites/default/files to /code/app/var/public
     # do it before the sync for nginx
