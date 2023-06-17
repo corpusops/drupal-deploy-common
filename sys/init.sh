@@ -270,7 +270,13 @@ configure() {
 
 
     # add shortcuts to some binaries on the project if they do not exists
+    # and refresh them from project folders if found
     for shortcut in composerinstall.sh composer.sh base.sh;do
+        for origdir in "${TOPDIR}"/sys/sbin "${TOPDIR}"/local/*deploy-common/sys/sbin;do
+            if [ -e "${origdir}/${shortcut}" ];then
+                cp -f${VDEBUG} "${origdir}/${shortcut}" "${TOPDIR}/init/sbin/${shortcut}"
+            fi
+        done
         if [[ "$shortcut" = "base.sh" ]];then
             shortcutlink=$shortcut
         else
