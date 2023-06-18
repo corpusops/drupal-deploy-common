@@ -42,7 +42,7 @@ if [ -e /code/app ]; then
 fi
 export PROJECT_DIR
 # activate shell debug if SDEBUG is set
-VDEBUG=""
+VDEBUG="${VDEBUG-}"
 if [[ -n $SDEBUG ]];then set -x;VDEBUG="v";fi
 
 DEFAULT_IMAGE_MODE=phpfpm
