@@ -99,6 +99,12 @@ export DATABASE_URL=${DATABASE_URL:-"no value"}
 export APP_SECRET=${APP_SECRET:-42424242424242424242424242}
 export INIT_HOOKS_DIR="${INIT_HOOKS_DIR:-/code/sys/scripts/hooks}"
 export DO_DRUPAL_SETTINGS_ENFORCEMENT=${DO_DRUPAL_SETTINGS_ENFORCEMENT-1}
+export COMPOSER_NO_NO_DEV_ENVS="${COMPOSER_NO_NO_DEV_ENVS-"^dev|test$"}"
+export SKIP_COMPOSER_INSTALL=${SKIP_COMPOSER_INSTALL-}
+export DO_COMPOSER_INSTALL=${DO_COMPOSER_INSTALL-}
+export SKIP_COMPOSER_HOOKS=${SKIP_COMPOSER_HOOKS-}
+export COMPOSER_INSTALLED_FILE=${COMPOSER_INSTALLED_FILE:-${PROJECT_DIR}/.composerinstalled}
+export COMPOSER_INSTALL_ARGS="${COMPOSER_INSTALL_ARGS-}"
 
 
 log() {
@@ -111,6 +117,10 @@ debuglog() {
 
 vv() {
     log "$@";"$@";
+}
+
+dvv() {
+    debuglog "$@";"$@";
 }
 
 #  shell: Run interactive shell inside container
@@ -326,10 +336,24 @@ services_setup() {
     # composer install
     if [[ -z ${NO_COMPOSER} ]];then
         if [ -e /code/init/sbin/composerinstall.sh ]; then
-            if [[ "${DRUPAL_ENV_NAME}" = "dev" ]] || [[ "${DRUPAL_ENV_NAME}" = "test" ]]; then
-                /code/init/sbin/composerinstall.sh
+            if [ ! -e ${COMPOSER_INSTALLED_FILE} ];then
+                DO_COMPOSER_INSTALL=1
             else
-                /code/init/sbin/composerinstall.sh --no-dev
+                debuglog "composer install already ran (${COMPOSER_INSTALLED_FILE})"
+            fi
+            if ! ( echo "${DRUPAL_ENV_NAME}" | grep -Eq "${COMPOSER_NO_NO_DEV_ENVS}" );then
+                if ( echo ${COMPOSER_INSTALL_ARGS} | grep -vq -- --no-dev );then
+                    COMPOSER_INSTALL_ARGS="${COMPOSER_INSTALL_ARGS-} --no-dev"
+                fi
+            fi
+            if [[ -n "${DO_COMPOSER_INSTALL}" ]] ;then
+                dvv /code/init/sbin/composerinstall.sh ${COMPOSER_INSTALL_ARGS} && touch "${COMPOSER_INSTALLED_FILE}"
+            else
+                debuglog "Skipping composer install"
+            fi
+            if [[ -z "${SKIP_COMPOSER_HOOKS-}" ]];then
+                dvv /code/init/sbin/composer.sh run-script pre-install-cmd
+                dvv /code/init/sbin/composer.sh run-script post-install-cmd
             fi
         fi
     fi
