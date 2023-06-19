@@ -16,7 +16,7 @@ FROM $BASE AS base
 ARG APP_GROUP=
 ARG APP_TYPE=drupal
 ARG APP_USER=
-ARG BUILD_DEV=y
+ARG BUILD_DEV=
 ARG CHARSET=UTF-8
 ARG FPM_LOGS_DIR=/logs/phpfpm
 ARG COMPOSER_DOWNLOAD_URL=https://getcomposer.org
@@ -31,6 +31,7 @@ ARG PHP_GROUP=apache
 ARG PHP_VER=7.2
 ARG PHP_VER_NO_DOT=72
 ARG TZ=Europe/Paris
+ARG COMPOSER_INSTALLED_FILE=/code/app/.composerinstalled
 ENV \
     APP_TYPE="${APP_TYPE}" \
     BUILD_DEV="$BUILD_DEV" \
@@ -43,7 +44,8 @@ ENV \
     LANG="$LANG" \
     LC_ALL="$LANG" \
     PHP_VER="$PHP_VER" \
-    PHP_VER_NO_DOT="$PHP_VER_NO_DOT"
+    PHP_VER_NO_DOT="$PHP_VER_NO_DOT" \
+    COMPOSER_INSTALLED_FILE="/code/app/.composerinstalled"
 
 WORKDIR /code
 USER root
@@ -168,7 +170,8 @@ RUN bash -exc ': \
     \
     && : "run composer install with --no-scripts switch is to avoid the drupal cache clear." \
     && : "Indeed this one requires a working database" \
-    && cd app && gosu ${APP_USER} ../init/sbin/composerinstall.sh --no-scripts && cd -\
+    && nodev='' && if  [ "x${BUILD_DEV}" != "xy" ];then nodev="--no-dev";fi \
+    && cd app && gosu ${APP_USER} ../init/sbin/composerinstall.sh ${nodev} --no-scripts && touch "${COMPOSER_INSTALLED_FILE}" && cd -\
     \
     && : "final cleanup" \
     && ( rm -rvf /root/.cache/composer /home/*/.cache/composer ) || true \
