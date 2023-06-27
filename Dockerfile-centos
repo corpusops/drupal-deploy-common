@@ -103,8 +103,8 @@ WORKDIR $BASE_DIR
 USER root
 ADD yum.txt ./
 RUN \
-    --mount=type=cache,id=cops${BASE}dnf,target=/var/cache/dnf \
-    --mount=type=cache,id=cops${BASE}yum,target=/var/cache/yum \
+    --mount=type=cache,id=cops${BASE}dnf,target=/var/cache/dnf,sharing=locked \
+    --mount=type=cache,id=cops${BASE}yum,target=/var/cache/yum,sharing=locked \
     bash -c 'set -exo pipefail \
     \
     && : "install packages" \
@@ -180,8 +180,8 @@ ARG \
     PHP_VER PHP_VER_NO_DOT PIPENV_REQ PSQL_HISTORY PYTHONUNBUFFERED PY_VER STRIP_HELPERS \
     TZ UBUNTU_APT_MIRROR VSCODE_VERSION WITH_VSCODE
 RUN \
-    --mount=type=cache,id=cops${BASE}apt,target=/var/cache/apt \
-    --mount=type=cache,id=cops${BASE}list,target=/var/lib/apt/lists \
+    --mount=type=cache,id=cops${BASE}apt,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,id=cops${BASE}list,target=/var/lib/apt/lists,sharing=locked \
     bash -c 'set -exo pipefail \
     && : "$(date)install dev packages"\
     && yum -y update \
@@ -326,7 +326,7 @@ RUN --mount=type=bind,from=final,target=/s \
              /cops_helpers/ /etc/supervisor.d/ /etc/rsyslog.d/ /etc/rsyslog.conf /etc/rsyslog.conf.frep /etc/cron.d/ /etc/logrotate.d/ \
     ;do if [ -e /s${i} ] || [ -h /s${i} ];then rsync -aAH --numeric-ids /s${i} ${i};fi;done \
     && : "Fix crond & pam error in RedHat --FAILED to open PAM security session (Cannot make/remove an entry for the specified session)--" \
-    && : '########### sed -i "/session    required   pam_loginuid.so/c\#session    required   pam_loginuid.so" /etc/pam.d/crond ' 
+    && : '########### sed -i "/session    required   pam_loginuid.so/c\#session    required   pam_loginuid.so" /etc/pam.d/crond '
 WORKDIR $BASE_DIR/app
 ADD --chown=${APP_TYPE}:${APP_TYPE} .git                         $BASE_DIR/.git
 # image will drop privileges itself using gosu at the end of the entrypoint
