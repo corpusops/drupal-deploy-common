@@ -321,6 +321,7 @@ has_ignited_db() {
 }
 
 check_public_files_symlink() {
+    owd="$(pwd)"
     cd "${ROOTPATH}"
     if [ ! -d "${SITES_DIR}/default" ]; then
         echo "${YELLOW}+ Creating ${SITES_DIR}/default${NORMAL}";
@@ -355,6 +356,7 @@ check_public_files_symlink() {
         chown -h ${USER}:${GROUP} files
         cd -
     fi
+    cd "$owd"
 }
 
 # vim:set et sts=4 ts=4 tw=0:

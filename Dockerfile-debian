@@ -213,7 +213,7 @@ ADD --chown=${APP_USER}:${PHP_GROUP} local/${APP_TYPE}-deploy-common/ ./local/${
 ADD --chown=${APP_USER}:${PHP_GROUP} app                              ./app
 RUN bash -c 'set -exo pipefail \
     && : "$(date): middletime fixperms" \
-    && find $BASE_DIR -not -user ${APP_TYPE} | while read f;do chown ${APP_TYPE}:${PHP_GROUP} "$f";done  \
+    && ( export TOPDIR=$(pwd);if [ -e sys/init.sh ] ;then sys/init.sh fixperms;elif [ -e ./local/${APP_TYPE}-deploy-common/sys/init.sh ];then ./local/${APP_TYPE}-deploy-common/sys/init.sh fixperms;fi ) \
     && : "$(date) end"'
 
 # We make an intermediary init folder to allow to have the
@@ -241,10 +241,6 @@ ADD --chown=${APP_TYPE}:${APP_TYPE} $DOCS_FOLDERS                $BASE_DIR/docs/
 RUN bash -c 'set -exo pipefail \
     && : "inject any SSH config & configure ssh client" \
     && for i in keys sys/ssh;do if [ -e $i ];then cp -rfv $i/. /home/${APP_USER}/.ssh;fi;done \
-    && chmod -R 0700 /home/${APP_USER}/.ssh \
-    && find /home/${APP_USER}/.ssh -type f               | while read f;do chmod 0600 "$f";done \
-    && find /home/${APP_USER}/.ssh -type f -name "*.pub" | while read f;do chmod 0644 "$f";done \
-    && chown -R ${APP_USER}:${PHP_GROUP} /home/${APP_USER}/.ssh \
     \
     && : "$(date) end"'
 
@@ -273,6 +269,8 @@ RUN bash -c 'set -exo pipefail \
     && : "generate a default app.env from the app/.env.dist.frep" \
     && frep "app/.env.dist.frep:app/.env" --overwrite \
     \
+    && : "intermediate fixperm" \
+    && /code/init/init.sh fixperms \
     && : "run composer install with --no-scripts switch is to avoid the drupal cache clear." \
     && : "Indeed this one requires a working database" \
     && nodev='' && if  [ "x${BUILD_DEV}" != "xy" ];then nodev="--no-dev";fi \
