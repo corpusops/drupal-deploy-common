@@ -3,7 +3,6 @@ ARG BASE=corpusops/ubuntu:20.04
 FROM $BASE
 ARG PY_VER=3.8
 ENV PY_VER=$PY_VER
-ADD apt.txt ./
 ADD docs/apt.txt ./
 RUN bash -exc ': \
     && : "install dev packages" \
