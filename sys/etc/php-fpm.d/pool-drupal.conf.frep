@@ -1,4 +1,7 @@
-{{ $logd := .Env.FPM_LOGS_DIR | default "/logs/phpfpm" }}
+{{ $v := dict "$" $ }}
+{{ $v := $v | merge ( dict "logd"          (.Env.FPM_LOGS_DIR     | default "/logs/phpfpm" )) }}
+{{ $v := $v | merge ( dict "memory_limit"  (.Env.PHP_MEMORY_LIMIT | default "128M"         )) }}
+;
 ; Start a new pool named 'drupal'.
 ; the variable $pool can we used in any directive and will be replaced by the
 ; pool name ('drupal' here)
@@ -260,7 +263,7 @@ ping.response = pong
 
 ; The access log file
 ; Default: not set
-;access.log = {{$logd}}/fpm.$pool-access.log
+;access.log = {{$v.logd}}/fpm.$pool-access.log
 
 ; The access log format.
 ; The following syntax is allowed
@@ -324,7 +327,7 @@ ping.response = pong
 ; The log file for slow requests
 ; Default Value: not set
 ; Note: slowlog is mandatory if request_slowlog_timeout is set
-slowlog = {{$logd}}/fpm.$pool-slow.log
+slowlog = {{$v.logd}}/fpm.$pool-slow.log
 
 ; The timeout for serving a single request after which a PHP backtrace will be
 ; dumped to the 'slowlog' file. A value of '0s' means 'off'.
@@ -461,7 +464,7 @@ php_admin_value[suhosin.post.max_vars]   = "3000"
 php_admin_value[suhosin.request.max_vars]= "3000"
 
 ;#### LOGS
-php_admin_value[error_log] = {{$logd}}/fpm.$pool-error.log
+php_admin_value[error_log] = {{$v.logd}}/fpm.$pool-error.log
 
 php_admin_value[log_errors]              = 1
 php_admin_value[display_errors]          = {{ .Env.PHP_DISPLAY_ERROR }}
@@ -475,7 +478,7 @@ php_value[max_input_time]     ="300"
 ; Maximum amount of time each script may spend parsing request data
 php_value[max_execution_time] ="120"
 ; Maximum amount of memory a script may consume (8MB)
-php_value[memory_limit]       ="128M"
+php_value[memory_limit]       ="{{$v.memory_limit}}"
 
 ; Sessions: IMPORTANT reactivate garbage collector on Debian!!!
 php_value[session.gc_maxlifetime]              = 3600
