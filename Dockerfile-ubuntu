@@ -45,7 +45,7 @@ ENV \
     LC_ALL="$LANG" \
     PHP_VER="$PHP_VER" \
     PHP_VER_NO_DOT="$PHP_VER_NO_DOT" \
-    COMPOSER_INSTALLED_FILE="/code/app/.composerinstalled"
+    COMPOSER_INSTALLED_FILE="${COMPOSER_INSTALLED_FILE}"
 
 WORKDIR /code
 USER root
