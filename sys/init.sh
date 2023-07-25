@@ -124,6 +124,11 @@ dvv() {
     debuglog "$@";"$@";
 }
 
+
+die() {
+    log "$@";exit 1;
+}
+
 #  shell: Run interactive shell inside container
 _shell() {
     local pre=""
@@ -222,7 +227,7 @@ configure() {
             done < <(cd $i && find -type f|sed -re "s/\.\///g")
         fi
     done
-    cp -rf$VDEBUG sys/etc/* init/etc
+    cp -rf$VDEBUG sys/etc/. init/etc
     # install with frep any template file to / (eg: logrotate & cron file)
     cd init
     for i in $(find etc -name "*.frep" -type f |grep -v 'varnish' 2>/dev/null);do
@@ -270,7 +275,8 @@ configure() {
         [[ -n $bexts ]] && phpenmod -vALL -sALL $bexts
     done < <(ls -1d /etc/php*/*/*fpm*/pool.d 2>/dev/null||true)
 
-    # regenerate drupal app/.env file
+    # regenerate app/.env file
+    debuglog "regenerate /code/app/.env"
     frep "/code/app/.env.dist.frep:/code/app/.env" --overwrite
     chown ${APP_USER}:${PHP_GROUP} "/code/app/.env"
     # regenerate drupal app/www/sites/default/settings.php file
@@ -311,7 +317,8 @@ configure() {
         # Sync the webroot to a shared volume with Nginx
         # but do not sync files which is already a shared Nginx volume
         # containing public long term contributions -- except we need the files directory link, just not the content --
-        rsync -a --delete --exclude files/ /code/app/www/ /code/app/var/nginxwebroot/
+        rsync -a --delete --exclude files/ /code/app/www/ /code/app/var/nginxwebroot/ \
+            || die "sync webroot failed"
     fi
 }
 
