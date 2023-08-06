@@ -73,13 +73,13 @@
   shell: |
     set -ex
     cd "{{cops_drupal_dir}}"
-    {{cops_drupal_dc}} run --rm -T -u root drupal /bin/bash -ec "touch /code/app/var/private/MAINTENANCE"
+    {{cops_drupal_dc}} run --rm -T -u root --entrypoint bash drupal -ec "touch {{cops_drupal_maintenance_flags_dir}}/MAINTENANCE"
 # suspend cron tasks
 - tags: [drupal_service, drupal_cron, drupal_disable_cron]
   shell: |
     set -ex
     cd "{{cops_drupal_dir}}"
-    {{cops_drupal_dc}} run --rm -T -u drupal cron /bin/bash -ec "touch /code/app/var/private/SUSPEND_CRONS"
+    {{cops_drupal_dc}} run --rm -T -u root --entrypoint bash drupal -ec "touch {{cops_drupal_maintenance_flags_dir}}/SUSPEND_CRONS"
 # ensure manually handled services are booted
 # to handle sidekar volumes refresh accuratly
 - tags: [drupal_service, drupal_restart_service, drupal_do_restart_service]
@@ -183,10 +183,10 @@
   shell: |
     set -ex
     cd "{{cops_drupal_dir}}"
-    {{cops_drupal_dc}} run --rm -T -u root drupal /bin/bash -ec "rm -f /code/app/var/private/MAINTENANCE"
+    {{cops_drupal_dc}} run --rm -T -u root --entrypoint bash drupal -ec "rm -f {{cops_drupal_maintenance_flags_dir}}/MAINTENANCE"
 # re-enable crons
 - tags: [drupal_post_restart, drupal_cron, drupal_enable_cron]
   shell: |
     set -ex
     cd "{{cops_drupal_dir}}"
-    {{cops_drupal_dc}} run --rm -T -u drupal cron /bin/bash -ec "rm -f /code/app/var/private/SUSPEND_CRONS"
+    {{cops_drupal_dc}} run --rm -T -u root --entrypoint bash drupal -ec "rm -f {{cops_drupal_maintenance_flags_dir}}/SUSPEND_CRONS"

@@ -618,4 +618,6 @@ teleport_is_verbose: "{{teleport_debug}}"
 teleport_verbose: "{{teleport_is_verbose and 'v' or ''}}"
 teleport_vverbose: "{{teleport_is_verbose  and '-v' or ''}}"
 teleport_xverbose: "{{teleport_is_verbose and 'x' or ''}}"
-Teleport_vxverbose: "{{teleport_is_verbose  and '-x' or ''}}"
+teleport_vxverbose: "{{teleport_is_verbose  and '-x' or ''}}"
+cops_drupal_maintenance_flags_dir: /code/app/var/private
+
