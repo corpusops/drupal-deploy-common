@@ -15,7 +15,7 @@
     {% set ssh = item.value.sshcmd|default(teleport_sshcmd) %}
     {% set sshargs = item.value.sshargs|default(teleport_sshargs) %}
     {% set rsync_args = item.value.rsync_args|default(teleport_rsync_args) %}
-    {% set rsync_extra_args = item.value.rsync_extra_args|default(teleport_rsync_extra_args) %}
+    {% set rsync_extra_args = item.value.rsync_extra_args|default('') %}
     {% set cp = item.value.container_path %}
     {% set k = item.value.ssh_key_path|default(teleport_ssh_key_path) %}
     cd "{{teleport_wd}}"
@@ -36,6 +36,7 @@
       {% if sshargs %}-e "{{ssh}} {{sshargs}}"{%endif%} \
       {{rsync_args}} \
       {{rsync_extra_args}} \
+      {{teleport_rsync_origin_extra_args}} \
       "{{oh}}:{{item.value.origin_path}}" "{{cp}}"
     EOF
   args: {executable: /bin/bash}

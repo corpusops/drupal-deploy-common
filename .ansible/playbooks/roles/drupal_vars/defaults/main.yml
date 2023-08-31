@@ -345,7 +345,9 @@ teleport_paths: "{{teleport_paths_common|combine(lookup('vars', 'teleport_paths_
 teleport_paths_origin_dump_file: "{{teleport_paths.origin_dump}}/{{teleport_paths.dump_file}}"
 teleport_paths_dest_dump_file: "{{teleport_paths.dest_dump}}/{{teleport_paths.dump_file}}"
 teleport_rsync_args: "-azv --delete --delete-after"
-teleport_rsync_extra_args: "{% if teleport_origin_vars.get('ansible_become', '') and ((become_user|default(ansible_user)) not in ['root'] )%}--rsync-path='sudo rsync'{%endif%}"
+teleport_rsync_extra_args: "{{teleport_rsync_origin_extra_args}}"
+teleport_rsync_origin_extra_args: "{% if teleport_origin_vars.get('ansible_become', '')           and (teleport_origin_vars.get('ansible_user', '')      not in [None, '', 'root'])%}--rsync-path='sudo rsync'{%endif%}"
+teleport_rsync_destination_extra_args: "{% if teleport_destination_vars.get('ansible_become', '') and (teleport_destination_vars.get('ansible_user', '') not in [None, '', 'root'])%}--rsync-path='sudo rsync'{%endif%}"
 teleport_destination_ansible_host: "{{groups[teleport_destination][0]}}"
 teleport_origin_ansible_host: "{{groups[teleport_origin][0]}}"
 teleport_destination_host: "{{hostvars[teleport_destination_ansible_host]['ansible_host'] or teleport_destination_ansible_host}}"
@@ -360,6 +362,7 @@ teleport_sync_db_files_default:
     container: "{{teleport_db_container}}"
     container_path: "{{teleport_paths.dest_dump}}/"
     # only_if_exists: true
+teleport_private_extra_rsync_extra_args: "--exclude docs"
 teleport_sync_files_default:
   privatedocs:
     origin_path: "{{teleport_paths.origin_privatedocs}}/"
@@ -369,7 +372,7 @@ teleport_sync_files_default:
     origin_path: "{{teleport_paths.origin_private}}/"
     container: "{{teleport_app_container}}"
     container_path: "{{teleport_paths.dest_private}}/"
-    rsync_extra_args: "--exclude docs"
+    rsync_extra_args: "{{teleport_private_extra_rsync_extra_args}}"
   publiccontrib:
     origin_path: "{{teleport_paths.origin_publiccontrib}}/"
     container: "{{teleport_app_container}}"
@@ -450,7 +453,7 @@ teleport_ssh_origin_args: "{{hostvars[groups[teleport_origin][0]].ansible_ssh_co
 teleport_ssh_destination_args: "{{hostvars[groups[teleport_destination][0]].ansible_ssh_common_args | default('')}}"
 teleport_origin_sshargs_default: >-
   {% set h = groups[teleport_origin][0] %}
-  {% set k = hostvars[h].get('ansible_bastion', '') != '' and teleport_env_ssh_deploy_key or teleport_ssh_origin_key_path %}
+  {% set k = teleport_destination not in ['controller'] and teleport_env_ssh_deploy_key or teleport_ssh_origin_key_path %}
   {% if k%}-o IdentityFile={{k}} -o IdentitiesOnly=yes{%endif%}
   -o StrictHostKeyChecking=no
   {% if (
@@ -465,7 +468,7 @@ teleport_origin_sshargs_default: >-
   {% if cops_drupal_sync_ssh_user_internal %}-l {{user}}{% endif %}
 teleport_destination_sshargs_default: >-
   {% set h = groups[teleport_destination][0] %}
-  {% set k = hostvars[h].get('ansible_bastion', '') != '' and teleport_env_ssh_deploy_key or teleport_ssh_origin_key_path %}
+  {% set k = teleport_origin not in ['controller'] and teleport_env_ssh_deploy_key or teleport_ssh_destination_key_path %}
   -o StrictHostKeyChecking=no
   {% if k%}-o IdentityFile={{k}} -o IdentitiesOnly=yes{%endif%}
   {% if (
