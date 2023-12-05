@@ -1,5 +1,5 @@
 ---
-- hosts: controller
+- hosts: "{{deploy_key_hosts|default('controller')}}"
   gather_facts: false
   roles: [corpusops.roles/ansible_plugins]
   tasks:
