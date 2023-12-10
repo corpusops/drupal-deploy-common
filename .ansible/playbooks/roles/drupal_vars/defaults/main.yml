@@ -341,7 +341,7 @@ teleport_paths: "{{teleport_paths_common|combine(lookup('vars', 'teleport_paths_
 teleport_paths_origin_dump_file: "{{teleport_paths.origin_dump}}/{{teleport_paths.dump_file}}"
 teleport_paths_dest_dump_file: "{{teleport_paths.dest_dump}}/{{teleport_paths.dump_file}}"
 teleport_rsync_args: "-azv --delete --delete-after"
-teleport_rsync_extra_args: ""
+teleport_rsync_extra_args: "{% if teleport_origin_vars.get('ansible_become', '') and ((become_user|default(ansible_user)) not in ['root'] )%}--rsync-path='sudo rsync'{%endif%}"
 teleport_destination_ansible_host: "{{groups[teleport_destination][0]}}"
 teleport_origin_ansible_host: "{{groups[teleport_origin][0]}}"
 teleport_destination_host: "{{hostvars[teleport_destination_ansible_host]['ansible_host'] or teleport_destination_ansible_host}}"
@@ -385,9 +385,16 @@ teleport_sshkey_stripper: "-i [^ ]+"
 teleport_origin_sshargs_withoutkey: "{{teleport_origin_sshargs_default|regex_replace( teleport_sshkey_stripper, '')}}"
 teleport_destination_sshargs_withoutkey: "{{teleport_destination_sshargs_default|regex_replace( teleport_sshkey_stripper, '')}}"
 # as we connect not from bastion, dont use by default the key version one
-teleport_origin_sshargs: "{{teleport_origin_sshargs_withoutkey}}"
+ansible_ssh_bastion: ""
 teleport_sshargs: "{{teleport_origin_sshargs}}"
-teleport_destination_sshargs:  "{{teleport_destination_sshargs_withoutkey}}"
+teleport_origin_vars: "{{hostvars[groups[teleport_origin][0]]}}"
+teleport_destination_vars: "{{hostvars[groups[teleport_destination][0]]}}"
+teleport_origin_sshargs: "{% if teleport_origin_vars.get('ansible_user', '')%}-l {{teleport_origin_vars.ansible_user}}{%endif%}{{ ((teleport_origin_vars.get(
+  'ansible_ssh_bastion', '') |copsf_asbool
+) and teleport_origin_sshargs_default or teleport_origin_sshargs_withoutkey).replace('\"', \"'\")}}"
+teleport_destination_sshargs: "{% if teleport_destination_vars.get('ansible_user', '')%}-l {{teleport_destination_vars.ansible_user}}{%endif%}{{ ((teleport_destination_vars.get(
+  'ansible_ssh_bastion', '') |copsf_asbool
+) and teleport_destination_sshargs_default or teleport_destination_sshargs_withoutkey).replace('\"', \"'\")}}"
 teleport_origin_dump_scripts_postgres: |-
   {% if not teleport_origin_db_is_docker %}
   cd "{{teleport_paths.origin_dump}}"
