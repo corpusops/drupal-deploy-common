@@ -12,7 +12,6 @@ cops_drupal_docker_tag: "{{cops_drupal_gitref.replace('master', cops_drupal_defa
 cops_drupal_project_env: "DEV"
 cops_drupal_docker_image: "{{cops_drupal_name}}"
 cops_drupal_default_docker_tag: "latest"
-cops_drupal_docker_tag: "{{cops_drupal_default_docker_tag}}"
 cops_drupal_varnish_docker_image: "{{cops_drupal_name}}-varnish"
 cops_drupal_varnish_docker_tag: "{{cops_drupal_default_docker_tag}}"
 cops_drupal_tld_domain: example.com
