@@ -8,3 +8,4 @@
     block:
     - include_role: {name: drupal_vars, allow_duplicates: false}
     - include_role: {name: drupal,      allow_duplicates: false}
+      tags: [drupal_install]
