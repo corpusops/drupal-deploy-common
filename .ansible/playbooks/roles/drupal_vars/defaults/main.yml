@@ -24,7 +24,7 @@ cops_drupal_alternate_hostnames: [".{{cops_drupal_tld_domain}}"]
 cops_drupal_secret_key: "SuperSecret"
 cops_drupal_gateway: "{{ ansible_default_ipv4.address}}"
 cops_drupal_devmode: "{{ansible_connection|default('ssh') in ['local']}}"
-cops_drupal_composename: "{{(cops_drupal_devmode and
+cops_drupal_composename: "{{forced_cops_drupal_composename|default(cops_drupal_devmode and
   (teleport_wd|copsf_basename) or
   cops_drupal_name)}}"
 cops_drupal_backuped_dbs_keep_lasts: "1"
@@ -118,6 +118,9 @@ cops_drupal_http_port: "80"
 cops_drupal_https_port: "443"
 cops_drupal_api_listen: "127.0.0.1"
 cops_drupal_api_port: "9000"
+cops_drupal_db_driver: pgsql
+cops_drupal_db_uri: "{{cops_drupal_db_driver}}://{{cops_drupal_db_user}}{{cops_drupal_db_password and ':{0}'.format(cops_drupal_db_password) or ''}}@{{cops_drupal_db_host}}{{cops_drupal_db_port and ':{0}'.format(cops_drupal_db_port) or ''}}/{{cops_drupal_db_name}}"
+cops_drupal_psql_uri: "postgres://{{cops_drupal_db_user}}{{cops_drupal_db_password and ':{0}'.format(cops_drupal_db_password) or ''}}@{{cops_drupal_db_host}}{{cops_drupal_db_port and ':{0}'.format(cops_drupal_db_port) or ''}}/{{cops_drupal_db_name}}"
 cops_drupal_dotenv_defaults: |-
   DRUPAL_HTTP_LISTEN={{cops_drupal_http_listen}}
   DRUPAL_HTTP_PORT={{cops_drupal_http_port}}
@@ -150,13 +153,14 @@ cops_drupal_dotenv_defaults: |-
   POSTGRES_PASSWORD={{cops_drupal_db_password }}
   PGPASSWD={{cops_drupal_db_password }}
   PGPASSWORD={{cops_drupal_db_password }}
-  DATABASE_DRIVER=pgsql
+  DATABASE_DRIVER={{cops_drupal_db_driver}}
   DATABASE_DB={{ cops_drupal_db_name }}
   DATABASE_USER={{ cops_drupal_db_user }}
   DATABASE_PASSWD={{cops_drupal_db_password }}
   DATABASE_HOST={{ cops_drupal_db_host }}
   DATABASE_PORT={{ cops_drupal_db_port }}
   DATABASE_PREFIX={{ cops_drupal_db_prefix }}
+  DATABASE_URI={{cops_drupal_db_uri}}
   COOKIE_DOMAIN={{ cops_drupal_hostname }}
   ABSOLUTE_URL_SCHEME=https
   ABSOLUTE_URL_DOMAIN={{ cops_drupal_hostname }}
