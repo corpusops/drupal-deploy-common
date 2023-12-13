@@ -161,6 +161,7 @@ cops_drupal_dotenv_defaults: |-
   DATABASE_PORT={{ cops_drupal_db_port }}
   DATABASE_PREFIX={{ cops_drupal_db_prefix }}
   DATABASE_URI={{cops_drupal_db_uri}}
+  PSQL_URI={{cops_drupal_psql_uri}}
   COOKIE_DOMAIN={{ cops_drupal_hostname }}
   ABSOLUTE_URL_SCHEME=https
   ABSOLUTE_URL_DOMAIN={{ cops_drupal_hostname }}

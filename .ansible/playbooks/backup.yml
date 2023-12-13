@@ -15,7 +15,7 @@
         test -e "{{cops_drupal_dir}}/.env"
         cd "{{cops_drupal_dir}}"
         {% if cops_drupal_db_driver.startswith('pg') %}
-        ./control.sh dcompose run --rm --entrypoint bash db -c 'echo select 1|psql -v ON_ERROR_STOP=1 {{cops_drupal_psql_uri}}'
+        ./control.sh dcompose run --rm --entrypoint bash db -c 'echo select 1|psql -v ON_ERROR_STOP=1 $PSQL_URI'
         {% endif %}
       register: backuphastobedonetest
       failed_when: False
