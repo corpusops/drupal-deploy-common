@@ -10,7 +10,7 @@ DEBUG=${DEBUG:-${SDEBUG-}}
 # activate shell debug if SDEBUG is set
 VCOMMAND=""
 DASHVCOMMAND=""
-if [[ -n $SDEBUG ]];then set -x; VCOMMAND="v"; DASHVCOMMAND="-v";fi
+if [[ -n $SDEBUG ]];then set -x; VCOMMAND="v"; VDEBUG="v"; DASHVCOMMAND="-v";fi
 SCRIPTSDIR="$(dirname $(readlink -f "$0"))"
 ODIR=$(pwd)
 cd "${TOPDIR:-$SCRIPTSDIR/..}"
@@ -38,7 +38,7 @@ SRC_DIR_NAME=app
 if [[ -z "${SRC_DIR}" ]];then
     if [ -e "${TOPDIR}/${SRC_DIR_NAME}" ];then SRC_DIR="$TOPDIR/${SRC_DIR_NAME}";fi
 fi
-export ROOTPATH=$SRC_DIR
+export ROOTPATH=$SRC_DIR PROJECT_DIR=$SRC_DIR
 
 # sourcing bash utilities
 . "$BASE_DIR/init/sbin/base.sh"
@@ -406,6 +406,7 @@ execute_hooks() {
 
 # Run app preflight routines (layout, files sync to campanion volumes, migrations, permissions fix, etc.)
 pre() {
+    if [ "x${NO_PRE_STARTUP-}" != "x" ];then return 0;fi
     if [ -e "${BASE_DIR}/docs" ] && [[ -z "${SKIP_SYNC_DOCS}" ]];then
         rsync -az${VCOMMAND} "${BASE_DIR}/docs/" "${BASE_DIR}/outdocs/" --delete
     fi
@@ -450,7 +451,7 @@ if [[ "${IMAGE_MODE}" != "shell" ]]; then
     fi
 else
     if [[ "${1-}" = "shell" ]];then shift;fi
-    cmd="$@"
+    cmd="${@:-bash}"
     execute_hooks beforeshell "$@"
     ( cd $SRC_DIR && user=$SHELL_USER _shell "$cmd" )
 fi
