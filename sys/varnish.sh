@@ -73,6 +73,18 @@ do_run() {
       -s malloc,$VARNISH_MEMORY_SIZE
 }
 
+# refresh /etc/hosts for adjacents services & job container in gitab-ci
+if [ "x${REFRESH_HOSTS_FROM_CI-}" = "x1" ] && [ "x${COMMON_HOSTS_FILE}" != "x" ];then
+    while [ ! -e $COMMON_HOSTS_FILE ];do sleep 1;done
+    log "Refresh /etc/hosts from ${COMMON_HOSTS_FILE}"
+    cat ${COMMON_HOSTS_FILE}>>/etc/hosts
+fi
+# refresh VCL from current CI checkout
+if [ "x${REFRESH_VCL_FROM_CI-}" = "x1" ];then
+    mkdir -pv "/docker/sys/etc/varnish" || true
+    CI_VCL="${CI_VCL:-${CI_PROJECT_DIR:-.}/sys/etc/varnish/varnish.vcl.frep}"
+    cp -vf $CI_VCL /docker/sys/etc/varnish/varnish.vcl.frep
+fi
 
 # Configure VCL
 configure

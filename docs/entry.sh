@@ -1,30 +1,43 @@
 #!/bin/bash
 if [[ -n ${DEBUG} ]];then set -x;fi
 set -e
-SOURCEDIR=${SOURCEDIR:-"/code/docs.host"}
-SYNC_DIR=${SYNC_DIR:-"../app.host/config/sync"}
+export SOURCEDIR=${SOURCEDIR:-"/code/docs"}
+SYNC_DIR=${SYNC_DIR:-"/code/app/config/sync"}
 if [ -e ${SYNC_DIR} ] && ( ls $SYNC_DIR/*.yml >/dev/null ) && ( grep -q -- "root_dir:.*var/docs" ${SYNC_DIR}/*.yml );then
-    BUILDDIR=${BUILDDIR:-"/code/app.host/var/docs"}
+    BUILDDIR=${BUILDDIR:-"/code/app/var/docs"}
 else
-    BUILDDIR=${BUILDDIR:-"/code/app.host/var/private/docs"}
+    BUILDDIR=${BUILDDIR:-"/code/app/var/private/docs"}
 fi
-NO_INIT=${NO_INIT-}
-NO_CLEAN=${NO_CLEAN-}
-NO_HTML=${NO_HTML-}
-OWNER=${HOST_USER_UID:-1000}
+export NO_INSTALL=${NO_INSTALL-1}
+export NO_INIT=${NO_INIT-}
+export NO_CLEAN=${NO_CLEAN-}
+export NO_HTML=${NO_HTML-}
+export OWNER=${HOST_USER_UID:-1000}
 init() {
 	if [ ! -e "$BUILDDIR" ];then
         mkdir -pv "$BUILDDIR";
         chown ${OWNER} "$BUILDDIR";
     fi
 }
-[[ -z ${NO_INIT} ]] && init
+build_doc() {
+    [[ -z ${NO_CLEAN} ]] && if !(make clean);then ret=1;fi
+    [[ -z ${NO_HTML} ]] && if !(make html);then ret=1;fi
+    chown -R ${OWNER} "$BUILDDIR"
+}
+install_tools() {
+    if [[ -n ${NO_INSTALL} ]];then return 0;fi
+    python3 -m pip install -r requirements.txt
+}
 cd $SOURCEDIR
-if [[ -n "$@" ]];then
-    exec $@
+[[ -z "${NO_INIT}" ]] && init
+[[ -z "${NO_INSTALL}" ]] && install_tools
+if [[ -n "${@}" ]];then
+    case ${1-} in
+        build_doc|install_tools) $1;;
+        *) "$@";;
+    esac
 else
-    [[ -z ${NO_CLEAN} ]] && make clean
-    [[ -z ${NO_HTML} ]] && make html
+    build_doc
 fi
-
-chown -R ${OWNER} "$BUILDDIR";
+ret=$?
+exit $ret

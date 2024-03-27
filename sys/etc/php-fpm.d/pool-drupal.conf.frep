@@ -1,13 +1,30 @@
 {{ $v := dict "$" $ }}
+{{ $v := $v | merge ( dict "error_log"     (.Env.FPM_ERROR_LOG    | default "syslog" )) }}
+{{ $v := $v | merge ( dict "slow_log"      (.Env.FPM_SLOW_LOG     | default "/proc/self/fd/2" )) }}
+{{ $v := $v | merge ( dict "ignore_repeated_errors"      (.Env.FPM_IGNORE_REPEATED_ERRORS     | default "0" )) }}
+{{ $v := $v | merge ( dict "ignore_repeated_source"      (.Env.FPM_IGNORE_REPEATED_SOURCE     | default "0" )) }}
 {{ $v := $v | merge ( dict "logd"          (.Env.FPM_LOGS_DIR     | default "/logs/phpfpm" )) }}
+{{ $v := $v | merge ( dict "log_limit"     (.Env.FPM_LOG_LIMIT    | default "8192" )) }}
 {{ $v := $v | merge ( dict "memory_limit"  (.Env.PHP_MEMORY_LIMIT | default "128M"         )) }}
 {{ $v := $v | merge ( dict "catch_workers_output"  (.Env.FPM_CACHE_WORKERS_OUTPUT | default "yes"  )) }}
+{{ $v := $v | merge ( dict "decorate_workers_output"  (.Env.FPM_DECORATE_WORKERS_OUTPUT | default "no"  )) }}
+{{ $v := $v | merge ( dict "tmpdir"  (.Env.TMPDIR | default "/tmp"  )) }}
+{{ $v := $v | merge ( dict "topdir"  (.Env.TOPDIR | default "/code"  )) }}
+{{ $v := $v | merge ( dict "project_dir"  (.Env.PROJECT_DIR | default "/code/app"  )) }}
+{{ $v := $v | merge ( dict "error_reporting"  (.Env.FPM_ERROR_REPORTING | default "6143"  )) }}
+{{ $v := $v | merge ( dict "pool_name"  (.Env.FPM_POOL_NAME | default "drupal"  )) }}
+{{ $v := $v | merge ( dict "status_path"  (.Env.FPM_STATUS_PATH | default "/php-status-drupal"  )) }}
+{{ $v := $v | merge ( dict "ping_path"  (.Env.FPM_PING_PATH | default "/ping"  )) }}
+{{ $v := $v | merge ( dict "upload_max_filesize"  (.Env.FPM_UPLOAD_MAX_FILESIZE | default "500M"  )) }}
+{{ $v := $v | merge ( dict "max_input_vars"  (.Env.FPM_MAX_INPUT_VARS | default "3000"  )) }}
+{{ $v := $v | merge ( dict "max_input_vars"  (.Env.FPM_MAX_INPUT_VARS | default "3000"  )) }}
+{{ $v := $v | merge ( dict "php_ver"  (.Env.PHP_VER | default "8.0"  )) }}
 
-;
 ; Start a new pool named 'drupal'.
 ; the variable $pool can we used in any directive and will be replaced by the
 ; pool name ('drupal' here)
-[drupal]
+log_limit={{ $v.log_limit }}
+[{{$v.pool_name}}]
 
 ; Per pool prefix
 ; It only applies on the following directives:
@@ -22,6 +39,7 @@
 ; Note: This directive can also be relative to the global prefix.
 ; Default Value: none
 ;prefix = /path/to/pools/$pool
+
 
 ; Unix user/group of processes
 ; Note: The user is mandatory. If the group is not set, the default user's group
@@ -244,7 +262,7 @@ pm.max_spare_servers = {{ .Env.PHP_MAX_SPARE_WORKERS }}
 ;       anything, but it may not be a good idea to use the .php extension or it
 ;       may conflict with a real PHP file.
 ; Default Value: not set
-pm.status_path = /php-status-drupal
+pm.status_path = {{$v.status_path}}
 
 ; The ping URI to call the monitoring page of FPM. If this value is not set, no
 ; URI will be recognized as a ping page. This could be used to test from outside
@@ -256,7 +274,7 @@ pm.status_path = /php-status-drupal
 ;       anything, but it may not be a good idea to use the .php extension or it
 ;       may conflict with a real PHP file.
 ; Default Value: not set
-ping.path = /ping
+ping.path = {{$v.ping_path}}
 
 ; This directive may be used to customize the response of a ping request. The
 ; response is formatted as text/plain with a 200 response code.
@@ -329,7 +347,7 @@ ping.response = pong
 ; The log file for slow requests
 ; Default Value: not set
 ; Note: slowlog is mandatory if request_slowlog_timeout is set
-slowlog = {{$v.logd}}/fpm.$pool-slow.log
+slowlog = {{$v.slow_log}}
 
 ; The timeout for serving a single request after which a PHP backtrace will be
 ; dumped to the 'slowlog' file. A value of '0s' means 'off'.
@@ -375,6 +393,8 @@ slowlog = {{$v.logd}}/fpm.$pool-slow.log
 ; process time (several ms).
 ; Default Value: no
 catch_workers_output = {{ $v.catch_workers_output }}
+; Ensure worker stdout and stderr are sent to the main error log.
+decorate_workers_output = {{ $v.decorate_workers_output }}
 
 ; Clear environment in FPM workers
 ; Prevents arbitrary environment variables from reaching FPM worker processes
@@ -440,18 +460,18 @@ catch_workers_output = {{ $v.catch_workers_output }}
 
 ; will soon be removed in PHP, perfs problems, and not so necessary in Docker mode
 ; and regular problems in D9
-;php_admin_value[open_basedir] = "/code:/tmp:"
+;php_admin_value[open_basedir] = "{{$v.topdir}}:{{$v.tmpdir}}::"
 
-php_value[include_path] = ".:..:/code/app/src"
+php_value[include_path] = ".:..:{{$v.project_dir}}/src:"
 
 ;### TMP directories
-php_value[axis2.log_path]                        ="/tmp"
-php_value[session_pgsql.sem_file_name]           ="/tmp/php_session_pgsql"
-php_value[soap.wsdl_cache_dir]                   ="/tmp"
-php_value[uploadprogress.file.filename_template] ="/tmp/upt_%s.txt"
-php_value[xdebug.output_dir]                     ="/tmp"
-php_value[xdebug.profiler_output_dir]            ="/tmp"
-php_value[xdebug.trace_output_dir]               ="/tmp"
+php_value[axis2.log_path]                        ="{{$v.tmpdir}}"
+php_value[session_pgsql.sem_file_name]           ="{{$v.tmpdir}}/php_session_pgsql"
+php_value[soap.wsdl_cache_dir]                   ="{{$v.tmpdir}}"
+php_value[uploadprogress.file.filename_template] ="{{$v.tmpdir}}/upt_%s.txt"
+php_value[xdebug.output_dir]                     ="{{$v.tmpdir}}"
+php_value[xdebug.profiler_output_dir]            ="{{$v.tmpdir}}"
+php_value[xdebug.trace_output_dir]               ="{{$v.tmpdir}}"
 
 
 ;### UPLOAD
@@ -459,21 +479,22 @@ php_admin_flag[file_uploads]    = 1
 php_admin_value[upload_tmp_dir] = "/tmp"
 
 ;Maximum allowed size for uploaded files.
-php_admin_value[upload_max_filesize]     = "500M"
-php_admin_value[post_max_size]           = "500M"
-php_admin_value[max_input_vars]          = "3000"
-php_admin_value[suhosin.post.max_vars]   = "3000"
-php_admin_value[suhosin.request.max_vars]= "3000"
+php_admin_value[upload_max_filesize]     = "{{$v.upload_max_filesize}}"
+php_admin_value[post_max_size]           = "{{$v.upload_max_filesize}}"
+php_admin_value[max_input_vars]          = "{{$v.max_input_vars}}"
+php_admin_value[suhosin.post.max_vars]   = "{{$v.max_input_vars}}"
+php_admin_value[suhosin.request.max_vars]= "{{$v.max_input_vars}}"
 
 ;#### LOGS
-php_admin_value[error_log] = {{$v.logd}}/fpm.$pool-error.log
-
+;php_admin_value[ignore_repeated_errors] = {{$v.ignore_repeated_errors }}
+;php_admin_value[ignore_repeated_source] = {{$v.ignore_repeated_source }}
+php_admin_value[error_log] = {{ $v.error_log }}
 php_admin_value[log_errors]              = 1
 php_admin_value[display_errors]          = {{ .Env.PHP_DISPLAY_ERROR }}
 php_admin_value[html_errors]             = 0
 php_admin_value[display_startup_errors]  = 0
 php_admin_value[define_syslog_variables] = 1
-php_value[error_reporting]               = 6143
+php_value[error_reporting]               = {{$v.error_reporting}}
 
 ; Maximum execution time of each script, in seconds (30)
 php_value[max_input_time]     ="300"

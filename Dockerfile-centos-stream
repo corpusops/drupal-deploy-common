@@ -3,45 +3,108 @@
 # stages:
 # - stage base: install & setup layout
 # - stage final(base): copy results from build to a ligther image
-ARG BASE=corpusops/centos-bare:8
-FROM $BASE AS base
-ARG DRUPAL_DOCKERFILE_VERSION=1
-ARG APP_GROUP=
-ARG APP_TYPE=drupal
-ARG APP_USER=
-ARG BUILD_DEV=y
-ARG CHARSET=UTF-8
-ARG FPM_LOGS_DIR=/logs/phpfpm
-ARG COMPOSER_DOWNLOAD_URL=https://getcomposer.org
-ARG COMPOSER_VERSION=1.10.16
-ARG DEV_DEPENDENCIES_PATTERN='^#\s*dev dependencies'
-ARG GPG_KEYS=B42F6819007F00F88E364FD4036A9C25BF357DD4
-ARG GPG_KEYS_SERVERS="hkp://p80.pool.sks-keyservers.net:80 hkp://ipv4.pool.sks-keyservers.net hkp://pgp.mit.edu:80"
-ARG HOST_USER_UID=1000
-ARG LANG=fr_FR.utf8
-ARG LANGUAGE=fr_FR
-ARG PHP_GROUP=apache
-ARG PHP_VER=7.4
-ARG PHP_VER_NO_DOT=74
-ARG TZ=Europe/Paris
-ENV \
-    DRUPAL_DOCKERFILE_VERSION="${DRUPAL_DOCKERFILE_VERSION}" \
-    APP_TYPE="${APP_TYPE}" \
-    BUILD_DEV="$BUILD_DEV" \
-    PHP_GROUP="${PHP_GROUP}" \
-    APP_USER="${APP_USER:-$APP_TYPE}" \
+#
+# remember to sync with the bottom ENV & ARGS sections as those are not persisted in multistages
+# ( See https://github.com/moby/moby/issues/37345 && https://github.com/moby/moby/issues/37622#issuecomment-412101935 )
+# version: 3
+ARG \
+    APP_GROUP= \
+    APP_TYPE=drupal \
+    APP_USER= \
+    BASE=corpusops/centos-bare:8 \
+    BASE_DIR=/code \
+    BUILD_DEV= \
+    CANONICAL_APT_MIRROR='https://fr.archive.canonical.com/ubuntu/' \
+    CFLAGS= \
+    CHARSET=UTF-8 \
+    C_INCLUDE_PATH=/usr/include/gdal/ \
+    COMPOSER_DOWNLOAD_URL=https://getcomposer.org \
+    COMPOSER_INSTALLED_FILE=/code/app/.composerinstalled \
+    COMPOSER_VERSION=1.10.16 \
+    CPLUS_INCLUDE_PATH=/usr/include/gdal/ \
+    CPPLAGS= \
+    DEBIAN_FRONTEND=noninteractive \
+    DEV_DEPENDENCIES_PATTERN='^#\s*dev dep' \
+    DRUPAL_DOCKERFILE_VERSION=1 \
+    DOCS_FOLDERS='docs' \
+    GPG_KEYS=B42F6819007F00F88E364FD4036A9C25BF357DD4 \
+    GPG_KEYS_SERVERS="hkp://p80.pool.sks-keyservers.net:80 hkp://ipv4.pool.sks-keyservers.net hkp://pgp.mit.edu:80" \
+    HOST_USER_UID=1000 \
+    LANG=fr_FR.utf8 \
+    LANGUAGE=fr_FR \
+    LDFLAGS= \
+    LOCAL_DIR=/local \
+    PHP_GROUP=apache \
+    PHP_VER=7.2 \
+    PHP_VER_NO_DOT=72 \
+    PYTHONUNBUFFERED=1 \
+    PY_VER=3.6 \
+    TZ=Europe/Paris \
+    UBUNTU_APT_MIRROR='https://fr.archive.ubuntu.com/ubuntu/' \
+    VSCODE_VERSION= \
+    WITH_VSCODE=
+ARG \
     APP_GROUP="${APP_GROUP:-$APP_TYPE}" \
-    FPM_LOGS_DIR="${FPM_LOGS_DIR}" \
+    APP_USER="${APP_USER:-$APP_TYPE}" \
+    HELPERS=$BASE \
+    HISTFILE="${LOCAL_DIR}/.bash_history" \
+    IPYTHONDIR="${LOCAL_DIR}/.ipython" \
+    MYSQL_HISTFILE="${LOCAL_DIR}/.mysql_history" \
+    PATH="$BASE_DIR/sbin:$BASE_DIR/bin:$BASE_DIR/.bin:$BASE_DIR/node_modules/.bin:/cops_helpers:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin" \
+    PIPENV_REQ="pipenv>=${MINIMUM_PIP_VERSION}" \
+    PSQL_HISTORY="${LOCAL_DIR}/.psql_history" \
+    STRIP_HELPERS="forego confd remco"
+#
+
+FROM $HELPERS AS helpers
+FROM $BASE AS base
+USER root
+# inherit all global args (think to sync this block with runner stage)
+ARG \
+    APP_GROUP APP_TYPE APP_USER BASE BASE_DIR BUILD_DEV CANONICAL_APT_MIRROR CFLAGS \
+    CHARSET C_INCLUDE_PATH COMPOSER_DOWNLOAD_URL COMPOSER_INSTALLED_FILE COMPOSER_VERSION \
+    CPLUS_INCLUDE_PATH CPPLAGS DEBIAN_FRONTEND DEV_DEPENDENCIES_PATTERN DOCS_FOLDERS \
+    DRUPAL_D GPG_KEYS_SERVERS HELPERS HISTFILE \
+    HOST_USER_UID IPYTHONDIR LANG LANGUAGE LDFLAGS LOCAL_DIR MYSQL_HISTFILE PATH PHP_GROUP \
+    PHP_VER PHP_VER_NO_DOT PIPENV_REQ PSQL_HISTORY PYTHONUNBUFFERED PY_VER STRIP_HELPERS \
+    TZ UBUNTU_APT_MIRROR VSCODE_VERSION WITH_VSCODE
+ENV \
+    APP_TYPE="$APP_TYPE" \
+    APP_GROUP="${APP_GROUP}" \
+    APP_USER="${APP_USER}" \
+    BASE_DIR="$BASE_DIR" \
+    BUILD_DEV="$BUILD_DEV" \
+    CFLAGS="$CFLAGS" \
+    C_INCLUDE_PATH="$C_INCLUDE_PATH" \
+    COMPOSER_INSTALLED_FILE="${COMPOSER_INSTALLED_FILE}" \
     COMPOSER_VERSION="$COMPOSER_VERSION" \
+    CPLUS_INCLUDE_PATH="$CPLUS_INCLUDE_PATH" \
+    CPPLAGS="$CPPFLAGS" \
+    DEBIAN_FRONTEND="$DEBIAN_FRONTEND" \
+    DRUPAL_DOCKERFILE_VERSION="${DRUPAL_DOCKERFILE_VERSION}" \
+    HISTFILE="$HISTFILE" \
+    IPYTHONDIR="$IPYTHONDIR" \
     LANG="$LANG" \
     LC_ALL="$LANG" \
+    LDFLAGS="$LDFLAGS" \
+    LOCAL_DIR="$LOCAL_DIR" \
+    MYSQL_HISTFILE="$MYSQL_HISTFILE" \
+    PHP_GROUP="${PHP_GROUP}" \
     PHP_VER="$PHP_VER" \
-    PHP_VER_NO_DOT="$PHP_VER_NO_DOT"
-
-WORKDIR /code
+    PHP_VER_NO_DOT="$PHP_VER_NO_DOT" \
+    PATH="$PATH" \
+    PSQL_HISTORY="$PSQL_HISTORY" \
+    PYTHONUNBUFFERED="$PYTHONUNBUFFERED" \
+    PY_VER="$PY_VER" \
+    TZ="$TZ" \
+    VSCODE_VERSION="$VSCODE_VERSION" \
+    WITH_VSCODE="$WITH_VSCODE"
+WORKDIR $BASE_DIR
 USER root
-
-RUN bash -exc ': \
+RUN \
+    --mount=type=cache,id=cops${BASE}dnf,target=/var/cache/dnf \
+    --mount=type=cache,id=cops${BASE}yum,target=/var/cache/yum \
+    bash -c 'set -exo pipefail \
     \
     && : "Convert Centos8 to Centos-stream" \
     && yum -y update \
@@ -51,28 +114,32 @@ RUN bash -exc ': \
     && dnf -y distro-sync \
     '
 
-
 RUN bash -exc ': \
     \
     && : "install nginx & php" \
     && dnf -y module install nginx \
-    && dnf -y  module install php:$PHP_VER \
+    && dnf -y module install php:$PHP_VER \
     '
 
 ADD yum.txt ./
-
-RUN bash -exc ': \
+RUN \
+    --mount=type=cache,id=cops${BASE}dnf,target=/var/cache/dnf \
+    --mount=type=cache,id=cops${BASE}yum,target=/var/cache/yum \
+    bash -c 'set -euxo pipefail \
     \
     && : "install packages" \
-    && sed -i -re "s/(php-?)[0-9]\.[0-9]+/\1/g" yum.txt \
+    && sed -i -re "s/(php-?)[0-9]\.[0-9]+/\1$PHP_VER/g" yum.txt \
     && yum -y update \
     && yum install -y yum-utils \
     && yum -y update \
     && yum -y install $(sed -re "/$DEV_DEPENDENCIES_PATTERN/,$ d" yum.txt|grep -vE "^\s*#"|tr "\n" " " ) \
     && yum clean all \
-  '
+    && : "$(date) end" \
+    '
 
-RUN bash -exc ': \
+RUN \
+    --mount=type=bind,from=helpers,target=/s \
+    bash -c 'set -exo pipefail \
     \
     && : "remove default php-fpm pool"\
     && find $(ls -1d /etc/php*fpm* /etc/php*/*fpm* /etc/php*/*/*fpm*  2>/dev/null || true) /bin -type f -name www.conf -print -delete\
@@ -88,44 +155,71 @@ RUN bash -exc ': \
     && /usr/local/bin/composer --version  \
     \
     && : "make shortcut links for php"\
-    && ln -s $(which php-fpm${PHP_VER}) /usr/local/bin/php-fpm \
-    && ln -s $(which php${PHP_VER}) /usr/local/bin/php \
+    && for i in php-fpm php;do if [ -e /usr/local/bin/$i ];then rm -f /usr/local/bin/$i;fi;ln -sfv $(which ${i}${PHP_VER}) /usr/local/bin/${i};done \
     \
-    && : "setup project user & workdir, and ssh">&2\
+    && : "$(date): setup project user & workdir, and ~/ssh"\
     && for g in $APP_GROUP $PHP_GROUP;do if !( getent group ${g} &>/dev/null );then groupadd ${g};fi;done \
     && if !( getent passwd ${APP_USER} &>/dev/null );then useradd -g ${APP_GROUP} -ms /bin/bash ${APP_USER} --uid ${HOST_USER_UID} --home-dir /home/${APP_USER};fi \
     && ( usermod -a -G $PHP_GROUP $APP_USER || true ) \
     && if [ ! -e /home/${APP_USER}/.ssh ];then mkdir /home/${APP_USER}/.ssh;fi \
-    && chown -R ${APP_USER}:${APP_GROUP} /home/${APP_USER} . \
-    && chown -R ${APP_USER}:${PHP_GROUP} . \
+    && if [ ! -e $LOCAL_DIR ];then mkdir -p $LOCAL_DIR;fi \
+    && chown ${APP_USER}:${APP_GROUP} $LOCAL_DIR /home/${APP_USER}/.ssh /home/${APP_USER} . \
+    && while read f;do chown $APP_USER:$PHP_GROUP "$f";done < \
+        <(find . \
+          \( -type d -or -type f \) -not \( -user $APP_USER -or -group $PHP_GROUP \)  2>/dev/null|sort) \
     && chmod 2755 . \
     \
-    && : "set locale"\
+    && : "$(date): inject corpusops helpers"\
+    && for i in /cops_helpers/ /etc/supervisor.d/ /etc/rsyslog.d/ /etc/rsyslog.conf /etc/rsyslog.conf.frep /etc/cron.d/ /etc/logrotate.d/;do \
+        if [ -e /s$i ] || [ -h /s$i ];then rsync -aAH --numeric-ids /s${i} ${i};fi\
+        && cd /cops_helpers && rm -rfv $STRIP_HELPERS;\
+    done \
+    && : "$(date): set locale" \
     && export INSTALL_LOCALES="${LANG}" INSTALL_DEFAULT_LOCALE="${LANG}" \
-    && if [ -e /usr/bin/setup_locales.sh ];then /usr/bin/setup_locales.sh; \
-       elif [ -e /bin/setup_locales.sh ];then /bin/setup_locales.sh; \
+    && if (command -v setup_locales.sh);then setup_locales.sh; \
        else localedef -i ${LANGUAGE} -c -f ${CHARSET} -A /usr/share/locale/locale.alias ${LANGUAGE}.${CHARSET};\
        fi\
     \
-    && : "setup project timezone"\
-    && date && : "set correct timezone" \
+    && : "$(date): setup project timezone"\
     && ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone \
-    '
+    && : "$(date) end"'
+
 
 FROM base AS appsetup
-RUN bash -exc ': \
-    && : "install dev packages" \
+# inherit all global args (think to sync this block with runner stage)
+ARG \
+    APP_GROUP APP_TYPE APP_USER BASE BASE_DIR BUILD_DEV CANONICAL_APT_MIRROR CFLAGS \
+    CHARSET C_INCLUDE_PATH COMPOSER_DOWNLOAD_URL COMPOSER_INSTALLED_FILE COMPOSER_VERSION \
+    CPLUS_INCLUDE_PATH CPPLAGS DEBIAN_FRONTEND DEV_DEPENDENCIES_PATTERN DOCS_FOLDERS \
+    DRUPAL_D GPG_KEYS_SERVERS HELPERS HISTFILE \
+    HOST_USER_UID IPYTHONDIR LANG LANGUAGE LDFLAGS LOCAL_DIR MYSQL_HISTFILE PATH PHP_GROUP \
+    PHP_VER PHP_VER_NO_DOT PIPENV_REQ PSQL_HISTORY PYTHONUNBUFFERED PY_VER STRIP_HELPERS \
+    TZ UBUNTU_APT_MIRROR VSCODE_VERSION WITH_VSCODE
+RUN \
+    --mount=type=cache,id=cops${BASE}apt,target=/var/cache/apt \
+    --mount=type=cache,id=cops${BASE}list,target=/var/lib/apt/lists \
+    bash -c 'set -exo pipefail \
+    && : "$(date)install dev packages"\
     && yum -y update \
     && yum -y install $(cat yum.txt|grep -vE "^\s*#"|tr "\n" " " ) \
     && yum clean all \
+    && : "$(date) end" \
     '
-# Potential ssh keys for application user
-ADD --chown=${APP_USER}:${APP_GROUP} keys/*                           /home/${APP_USER}/.ssh/
-ADD --chown=${APP_USER}:${PHP_GROUP} app                              ./app
+
+# Handle images refresh (rebuild from BASE_IMAGE where BASE_IMAGE is an older version of this image)
+RUN for i in keys/* $DOCS_FOLDERS init sys local/${APP_TYPE}-deploy-common/ .git app sys sbin sys/sbin \
+    ;do if ! ( echo "$i" | grep -Eq "(apt|apk|yum).txt|pip_reqs.txt" );then ( rm -vrf $i || true );fi;done
+
+ADD --chown=${APP_USER}:${PHP_GROUP} keys/*                           /home/${APP_USER}/.ssh/
 ADD --chown=${APP_USER}:${PHP_GROUP} sys/sbin                         ./sbin
 ADD --chown=${APP_USER}:${PHP_GROUP} sys                              ./sys
 ADD --chown=${APP_USER}:${PHP_GROUP} local/${APP_TYPE}-deploy-common/ ./local/${APP_TYPE}-deploy-common/
-
+# only bring minimal app for now as we get only deps (CI optims)
+ADD --chown=${APP_USER}:${PHP_GROUP} app                              ./app
+RUN bash -c 'set -exo pipefail \
+    && : "$(date): middletime fixperms" \
+    && find $BASE_DIR -not -user ${APP_TYPE} | while read f;do chown ${APP_TYPE}:${PHP_GROUP} "$f";done  \
+    && : "$(date) end"'
 
 # We make an intermediary init folder to allow to have the
 #
@@ -136,37 +230,47 @@ ADD --chown=${APP_USER}:${PHP_GROUP} local/${APP_TYPE}-deploy-common/ ./local/${
 # sys -> init
 # ==> init contains files from both local sys and common, common cannot override content from local sys
 FROM appsetup AS final
-RUN bash -exc ': \
-    && : "alter rights and ownerships of ssh keys" \
-    && chmod 0700 /home/${APP_USER}/.ssh \
-    && (chmod 0600 /home/${APP_USER}/.ssh/* || true) \
-    && (chmod 0644 /home/${APP_USER}/.ssh/*.pub || true) \
-    && (chown -R ${APP_USER}:${APP_GROUP} /home/${APP_USER}/.ssh/* || true) \
+# inherit all global args (think to sync this block with runner stage)
+ARG \
+    APP_GROUP APP_TYPE APP_USER BASE BASE_DIR BUILD_DEV CANONICAL_APT_MIRROR CFLAGS \
+    CHARSET C_INCLUDE_PATH COMPOSER_DOWNLOAD_URL COMPOSER_INSTALLED_FILE COMPOSER_VERSION \
+    CPLUS_INCLUDE_PATH CPPLAGS DEBIAN_FRONTEND DEV_DEPENDENCIES_PATTERN DOCS_FOLDERS \
+    DRUPAL_D GPG_KEYS_SERVERS HELPERS HISTFILE \
+    HOST_USER_UID IPYTHONDIR LANG LANGUAGE LDFLAGS LOCAL_DIR MYSQL_HISTFILE PATH PHP_GROUP \
+    PHP_VER PHP_VER_NO_DOT PIPENV_REQ PSQL_HISTORY PYTHONUNBUFFERED PY_VER STRIP_HELPERS
+
+ADD --chown=${APP_TYPE}:${APP_TYPE} sys                          $BASE_DIR/sys
+ADD --chown=${APP_TYPE}:${APP_TYPE} local/${APP_TYPE}-deploy-common/  $BASE_DIR/local/${APP_TYPE}-deploy-common/
+ADD --chown=${APP_TYPE}:${APP_TYPE} $DOCS_FOLDERS                $BASE_DIR/docs/
+
+RUN bash -c 'set -exo pipefail \
+    && : "inject any SSH config & configure ssh client" \
+    && for i in keys sys/ssh;do if [ -e $i ];then cp -rfv $i/. /home/${APP_USER}/.ssh;fi;done \
+    && chmod -R 0700 /home/${APP_USER}/.ssh \
+    && find /home/${APP_USER}/.ssh -type f               | while read f;do chmod 0600 "$f";done \
+    && find /home/${APP_USER}/.ssh -type f -name "*.pub" | while read f;do chmod 0644 "$f";done \
+    && chown -R ${APP_USER}:${PHP_GROUP} /home/${APP_USER}/.ssh \
     \
+    && : "$(date) end"'
+
+USER root
+RUN bash -c 'set -exo pipefail \
     && : "create layout" \
-    && mkdir -vp sys init sbin\
-    app/bin app/drush app/lib app/scripts app/src app/www app/var \
+    && mkdir -vp sys init local/${APP_TYPE}-deploy-common/sys \
+    sbin app/bin app/drush app/lib app/scripts app/src app/www app/var \
     app/www/sites app/www/sites/default \
     app/var/public app/var/private app/var/tmp app/var/cache app/var/nginxwebroot \
-    local/${APP_TYPE}-deploy-common >&2\
-    \
-    && : "if we found a static dist inside the sys directory, it has been injected during " \
-    && :  "the CI process, we just unpack it" \
-    && if [ -e sys/statics ];then\
-     while read f;do tar xf ${f};done \
-      < <(find sys/statics -name "*.tar"); \
-     while read f;do tar xJf ${f};done \
-      < <(find sys/statics -name "*.txz" -or -name "*.xz"); \
-     while read f;do tar xjf ${f};done \
-      < <(find sys/statics -name "*.tbz2" -or -name "*.bz2"); \
-     while read f;do tar xzf ${f};done \
-      < <(find sys/statics -name "*.tgz" -or -name "*.gz"); \
-    fi\
-    && rm -rfv sys/statics \
-    \
+    && : "if we found a static dist inside the sys directory, it has been injected during" \
+    && : "the CI process, we just unpack it" \
+    && if [ -e sys/statics ];then : "unpack" \
+        && while read f;do tar xf  ${f};done < <(find sys/statics -name "*.tar") \
+        && while read f;do tar xJf ${f};done < <(find sys/statics -name "*.txz"  -or -name "*.xz") \
+        && while read f;do tar xjf ${f};done < <(find sys/statics -name "*.tbz2" -or -name "*.bz2") \
+        && while read f;do tar xzf ${f};done < <(find sys/statics -name "*.tgz"  -or -name "*.gz") \
+        && rm -rfv sys/statics;\
+    fi \
     && : "assemble init" \
-    && cp -frnv local/${APP_TYPE}-deploy-common/sys/* sys \
-    && cp -frnv sys/* init \
+    && for i in init.sh etc sbin scripts;do for j in local/${APP_TYPE}-deploy-common/sys sys;do if [ -e $j/$i ];then cp -frv $j/$i init;fi;done;done \
     \
     && : "connect init.sh" \
     && ln -sf $(pwd)/init/init.sh /init.sh \
@@ -174,25 +278,73 @@ RUN bash -exc ': \
     && : "generate a default app.env from the app/.env.dist.frep" \
     && frep "app/.env.dist.frep:app/.env" --overwrite \
     \
-    && : "latest fixperm" \
-    && find $(pwd) -not -user ${APP_USER} | ( set +x;while read f;do chown ${APP_USER}:${PHP_GROUP} "$f";done ) \
-    \
     && : "run composer install with --no-scripts switch is to avoid the drupal cache clear." \
     && : "Indeed this one requires a working database" \
-    && : "###########cd app && gosu ${APP_USER} ../init/sbin/composerinstall.sh --no-scripts && cd -" \
+    && nodev='' && if  [ "x${BUILD_DEV}" != "xy" ];then nodev="--no-dev";fi \
+    && cd app && gosu ${APP_USER} ../init/sbin/composerinstall.sh ${nodev} --no-scripts && touch "${COMPOSER_INSTALLED_FILE}" && cd -\
     \
     && : "final cleanup" \
     && ( rm -rvf /root/.cache/composer /home/*/.cache/composer || true ) \
-    '
+    && : "latest fixperm" \
+    && find -not -user ${APP_USER} | while read f;do chown ${APP_USER}:${PHP_GROUP} "$f";done \
+    && find sys/etc/cron.d -type f | while read f;do chmod -vf 0644 "$f";done \
+    && : "$(date) end"'
 
-FROM base AS runner
-RUN --mount=type=bind,from=final,target=/s bash -exc ': \
-    && for i in /init.sh /home/ /code/;do rsync -aAH --numeric-ids /s${i} ${i};done \
-    && : "Fix crond & pam error in RedHat --FAILED to open PAM security session (Cannot make/remove an entry for the specified session)--" \
-    && : '########### sed -i "/session    required   pam_loginuid.so/c\#session    required   pam_loginuid.so" /etc/pam.d/crond ' \
-    '
+WORKDIR $BASE_DIR
 
-WORKDIR /code/app
-# image will drop privileges itself using gosu at the end of the entrypoint
+ARG DBSETUP_SH=https://raw.githubusercontent.com/corpusops/docker-images/master/rootfs/bin/project_dbsetup.sh
+ADD --chmod=755 $DBSETUP_SH $BASE_DIR/bin/
+
+ADD --chown=${APP_TYPE}:${APP_TYPE} .git                         $BASE_DIR/.git
 CMD "/init.sh"
 
+FROM base AS runner
+# inherit all global args (think to sync this block with runner stage)
+ARG \
+    APP_GROUP APP_TYPE APP_USER BASE BASE_DIR BUILD_DEV CANONICAL_APT_MIRROR CFLAGS \
+    CHARSET C_INCLUDE_PATH COMPOSER_DOWNLOAD_URL COMPOSER_INSTALLED_FILE COMPOSER_VERSION \
+    CPLUS_INCLUDE_PATH CPPLAGS DEBIAN_FRONTEND DEV_DEPENDENCIES_PATTERN DOCS_FOLDERS \
+    DRUPAL_D GPG_KEYS_SERVERS HELPERS HISTFILE \
+    HOST_USER_UID IPYTHONDIR LANG LANGUAGE LDFLAGS LOCAL_DIR MYSQL_HISTFILE PATH PHP_GROUP \
+    PHP_VER PHP_VER_NO_DOT PIPENV_REQ PSQL_HISTORY PYTHONUNBUFFERED PY_VER STRIP_HELPERS
+ENV \
+    APP_TYPE="$APP_TYPE" \
+    APP_GROUP="${APP_GROUP}" \
+    APP_USER="${APP_USER}" \
+    BASE_DIR="$BASE_DIR" \
+    BUILD_DEV="$BUILD_DEV" \
+    CFLAGS="$CFLAGS" \
+    C_INCLUDE_PATH="$C_INCLUDE_PATH" \
+    COMPOSER_INSTALLED_FILE="${COMPOSER_INSTALLED_FILE}" \
+    COMPOSER_VERSION="$COMPOSER_VERSION" \
+    CPLUS_INCLUDE_PATH="$CPLUS_INCLUDE_PATH" \
+    CPPLAGS="$CPPFLAGS" \
+    DEBIAN_FRONTEND="$DEBIAN_FRONTEND" \
+    DRUPAL_DOCKERFILE_VERSION="${DRUPAL_DOCKERFILE_VERSION}" \
+    HISTFILE="$HISTFILE" \
+    IPYTHONDIR="$IPYTHONDIR" \
+    LANG="$LANG" \
+    LC_ALL="$LANG" \
+    LDFLAGS="$LDFLAGS" \
+    LOCAL_DIR="$LOCAL_DIR" \
+    MYSQL_HISTFILE="$MYSQL_HISTFILE" \
+    PHP_GROUP="${PHP_GROUP}" \
+    PHP_VER="$PHP_VER" \
+    PHP_VER_NO_DOT="$PHP_VER_NO_DOT" \
+    PATH="$PATH" \
+    PSQL_HISTORY="$PSQL_HISTORY" \
+    PYTHONUNBUFFERED="$PYTHONUNBUFFERED" \
+    PY_VER="$PY_VER" \
+    TZ="$TZ" \
+    VSCODE_VERSION="$VSCODE_VERSION" \
+    WITH_VSCODE="$WITH_VSCODE"
+RUN --mount=type=bind,from=final,target=/s \
+    for i in /init.sh /home/ $BASE_DIR/ \
+             /cops_helpers/ /etc/supervisor.d/ /etc/rsyslog.d/ /etc/rsyslog.conf /etc/rsyslog.conf.frep /etc/cron.d/ /etc/logrotate.d/ \
+    ;do if [ -e /s${i} ] || [ -h /s${i} ];then rsync -aAH --numeric-ids /s${i} ${i};fi;done \
+    && : "Fix crond & pam error in RedHat --FAILED to open PAM security session (Cannot make/remove an entry for the specified session)--" \
+    && : '########### sed -i "/session    required   pam_loginuid.so/c\#session    required   pam_loginuid.so" /etc/pam.d/crond '
+WORKDIR $BASE_DIR/app
+ADD --chown=${APP_TYPE}:${APP_TYPE} .git                         $BASE_DIR/.git
+# image will drop privileges itself using gosu at the end of the entrypoint
+CMD "/init.sh"

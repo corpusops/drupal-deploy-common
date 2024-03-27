@@ -1,20 +1,64 @@
 # syntax=docker/dockerfile:1.3
-ARG BASE=corpusops/ubuntu:20.04
+ARG \
+    BASE=corpusops/ubuntu-bare:20.04 \
+    CANONICAL_APT_MIRROR='https://fr.archive.canonical.com/ubuntu/' \
+    CFLAGS= \
+    C_INCLUDE_PATH=/usr/include/gdal/ \
+    CPPLAGS= \
+    DEBIAN_FRONTEND=noninteractive \
+    LDFLAGS= \
+    PY_VER=3.8 \
+    UBUNTU_APT_MIRROR='https://fr.archive.ubuntu.com/ubuntu/'
+ARG \
+    HELPERS=$BASE \
+    PATH="$BASE_DIR/sbin:$BASE_DIR/bin:$BASE_DIR/.bin:$BASE_DIR/node_modules/.bin:/cops_helpers:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin" \
+ARG CANONICAL_APT_MIRROR CFLAGS C_INCLUDE_PATH CPPLAGS DEBIAN_FRONTEND LDFLAGS PY_VER PATH UBUNTU_APT_MIRROR HELPERS PATH STRIP_HELPERS
+FROM $BASE AS ppafetcher
+USER root
+RUN bash -exc '\
+    : "fetch ppa in another stage as software-properties-common brings out way much deps than neccessary" \
+    && apt-get update -qq && apt-get install -qq -y software-properties-common apt-utils \
+    && add-apt-repository -yu ppa:ondrej/php'
+FROM $HELPERS AS helpers
 FROM $BASE
-ARG PY_VER=3.8
 ENV PY_VER=$PY_VER
+WORKDIR /code/docs
+# inherit all global args (think to sync this block with runner stage)
+ARG CANONICAL_APT_MIRROR CFLAGS C_INCLUDE_PATH CPPLAGS DEBIAN_FRONTEND LDFLAGS PY_VER PATH UBUNTU_APT_MIRROR HELPERS PATH STRIP_HELPERS
+ADD apt.txt ../
 ADD docs/apt.txt ./
-RUN bash -exc ': \
+RUN \
+    --mount=type=bind,from=ppafetcher,target=/ppa \
+    --mount=type=cache,id=copsdocs${BASE}apt,target=/var/cache/apt \
+    --mount=type=cache,id=copsdocs${BASE}list,target=/var/lib/apt/lists \
+    bash -exc ': \
+    && : "bring back ppa conf" \
+    && for i in /etc/apt;do cp -arfv /ppa${i} $(dirname $i);done \
+    \
+    && if [ "x${UBUNTU_APT_MIRROR}" != "x" ];then echo "Using UBUNTU_APT_MIRROR: ${UBUNTU_APT_MIRROR}";         sed -i -re "s!(deb(-src)?\s+)http.?[:]//(archives?.ubuntu.com/ubuntu/)!\1${UBUNTU_APT_MIRROR}!g" $(find /etc/apt/sources.list* -type f);fi \
+    && if [ "x${CANONICAL_APT_MIRROR}" != "x" ];then echo "Using CANONICAL_APT_MIRROR: ${CANONICAL_APT_MIRROR}";sed -i -re "s!(deb(-src)?\s+)http.?[:]//(archives?.canonical.com/ubuntu/)!\1${CANONICAL_APT_MIRROR}!g" $(find /etc/apt/sources.list* -type f);fi \
+    && osver=$(. /etc/os-release && echo $VERSION_CODENAME ) \
+    && : use postgresql.org repos \
+    && if (grep -q -E ^postgresql apt.txt ../apt.txt);then \
+         apt update -qq && apt install -y curl ca-certificates gnupg; \
+         ( curl https://www.postgresql.org/media/keys/ACCC4CF8.asc|gpg --dearmor|tee /etc/apt/trusted.gpg.d/apt.postgresql.org.gpg >/dev/null||true; ); \
+         ( echo "deb http://apt.postgresql.org/pub/repos/apt ${osver}-pgdg main" > /etc/apt/sources.list.d/pgdg.list); \
+    fi \
     && : "install dev packages" \
+    && rm -f /etc/apt/apt.conf.d/docker-clean || true;echo "Binary::apt::APT::Keep-Downloaded-Packages \"true\";" > /etc/apt/apt.conf.d/keep-cache \
     && apt-get update  -qq \
-    && sed -i -re "s/(python-?)[0-9]\.[0-9]+/\1$PY_VER/g" apt.txt \
-    && apt-get install -qq -y $(cat apt.txt |grep -vE "^\s*#"|tr "\n" " " )  \
+    && sed -i -re "s/(python-?)[0-9]\.[0-9]+/\1$PY_VER/g" ../apt.txt ./apt.txt \
+    && apt-get install -qq -y $(cat ../apt.txt apt.txt |grep -vE "^\s*#"|tr "\n" " " )  \
     && apt-get clean all && apt-get autoclean && rm -rf /var/lib/apt/lists/* \
    '
-RUN bash -ec "if ! ( python${PY_VER} -m pip --version; );then python${PY_VER} <( curl https://bootstrap.pypa.io/get-pip.py; );fi && python${PY_VER} -m pip --version"
+RUN \
+    --mount=type=cache,id=copsdocs${PY_VER}pip,target=/home/$APP_TYPE/.cache/pip \
+   bash -ec "if ! ( python${PY_VER} -m pip --version; );then python${PY_VER} <( curl https://bootstrap.pypa.io/get-pip.py; );fi && python${PY_VER} -m pip --version"
 ADD docs/req*.txt ./
-RUN python${PY_VER} -m pip install -r requirements.txt
-ADD docs /code/docs
+RUN \
+    --mount=type=cache,id=copsdocs${PY_VER}pip,target=/home/$APP_TYPE/.cache/pip \
+    python${PY_VER} -m pip install -r requirements.txt
+ADD .env *env ../
+ADD docs ./
 ADD local /code/local/
-WORKDIR /code/docs
 ENTRYPOINT ["/code/docs/entry.sh"]
