@@ -2,21 +2,22 @@
 cops_drupal_name: drupalinstance
 cops_drupal_profile_name: "{{cops_drupal_name}}"
 cops_drupal_project_module_name: "{{cops_drupal_profile_name}}"
+#
+cops_drupal_default_deploy_env: "dev"
+cops_drupal_default_docker_tag: "latest"
+cops_drupal_varnish_docker_tag: "{{cops_drupal_default_docker_tag}}"
+cops_drupal_default_gitref: "master"
 cops_drupal_branch_envs: {}
-cops_drupal_default_deploy_env: prod
 cops_drupal_deploy_env: "{{ (
   cops_drupal_gitref in [cops_drupal_default_gitref, cops_drupal_default_docker_tag]
     and cops_drupal_default_deploy_env
-    or  cops_drupal_branch_envs.get(cops_drupal_gitref, cops_drupal_default_deploy_env))}}"
+    or  cops_drupal_branch_envs.get(cops_drupal_gitref, cops_drupal_gitref))}}"
 cops_drupal_docker_tag: "{{cops_drupal_gitref.replace('master', cops_drupal_default_docker_tag)}}"
 cops_drupal_project_env: "DEV"
 cops_drupal_docker_image: "{{cops_drupal_name}}"
-cops_drupal_default_docker_tag: "latest"
 cops_drupal_varnish_docker_image: "{{cops_drupal_name}}-varnish"
-cops_drupal_varnish_docker_tag: "{{cops_drupal_default_docker_tag}}"
 cops_drupal_tld_domain: example.com
 cops_drupal_mail_domain: "{{ cops_drupal_tld_domain }}"
-cops_drupal_default_gitref: "master"
 cops_drupal_gitref: "{{cops_drupal_default_gitref}}"
 cops_drupal_dir_default: "/srv/docker/{{cops_drupal_name}}"
 cops_drupal_dir: "{{cops_drupal_dir_default}}"
@@ -28,6 +29,7 @@ cops_drupal_devmode: "{{ansible_connection|default('ssh') in ['local']}}"
 cops_drupal_composename: "{{forced_cops_drupal_composename|default(cops_drupal_devmode and
   (teleport_wd|copsf_basename) or
   cops_drupal_name)}}"
+cops_drupal_servicename: "{{cops_drupal_composename}}"
 cops_drupal_backuped_dbs_keep_lasts: "1"
 cops_drupal_backuped_dbs: all
 cops_drupal_db_prefix: ""
@@ -49,9 +51,10 @@ cops_drupal_varnish_ttl_static: "3h"
 cops_drupal_varnish_ttl_static_for_browser: "86400"
 cops_drupal_varnish_nginx_shared_secret: "change_me_please"
 # backup could be remove in a-while when we have redeployed it everywhere
-cops_drupal_started_services_default: "db backup"
+cops_drupal_started_services_default: "log"
+# do not remove setup-* services for retrocompat !
+cops_drupal_restarted_services_default: "log db redis memcached setup-mysql setup-postgres setup-db drupal nginx backup cron{% if cops_drupal_use_varnish %} varnish{%endif%}"
 cops_drupal_started_services: "{{cops_drupal_started_services_default}}"
-cops_drupal_restarted_services_default: "drupal cron{% if cops_drupal_use_varnish %} varnish{%endif%} nginx"
 cops_drupal_restarted_services: "{{cops_drupal_restarted_services_default}}"
 cops_drupal_purge_volumes: []
 cops_drupal_sshargs: >-
@@ -93,10 +96,6 @@ cops_drupal_smtp_protocol: 'standard'
 cops_drupal_smtp_autotls: 'true'
 cops_drupal_smtp_username: ''
 cops_drupal_smtp_password: ''
-#cops_drupal_hosts_whitelist_cors: "'{{(
-#    [cops_drupal_hostname, '0.0.0.0', '.{0}'.format(cops_drupal_hostname)]+
-#    cops_drupal_alternate_hostnames
-#  )|join("','") }}'" FIXME: "','" il y a des antislash a mettre, a tester
 cops_drupal_hosts_whitelist_security: "{{(
     [cops_drupal_hostname, '0.0.0.0']+
     cops_drupal_alternate_hostnames
@@ -123,6 +122,8 @@ cops_drupal_api_port: "9000"
 cops_drupal_db_driver: pgsql
 cops_drupal_db_uri: "{{cops_drupal_db_driver}}://{{cops_drupal_db_user}}{{cops_drupal_db_password and ':{0}'.format(cops_drupal_db_password) or ''}}@{{cops_drupal_db_host}}{{cops_drupal_db_port and ':{0}'.format(cops_drupal_db_port) or ''}}/{{cops_drupal_db_name}}"
 cops_drupal_psql_uri: "postgres://{{cops_drupal_db_user}}{{cops_drupal_db_password and ':{0}'.format(cops_drupal_db_password) or ''}}@{{cops_drupal_db_host}}{{cops_drupal_db_port and ':{0}'.format(cops_drupal_db_port) or ''}}/{{cops_drupal_db_name}}"
+cops_drupal_site_mail: "contact@{{ cops_drupal_hostname }}"
+cops_drupal_site_adminmail: "sysadmin+{{ cops_drupal_name }}@{{ cops_drupal_hostname }} "
 cops_drupal_dotenv_defaults: |-
   DRUPAL_HTTP_LISTEN={{cops_drupal_http_listen}}
   DRUPAL_HTTP_PORT={{cops_drupal_http_port}}
@@ -187,8 +188,8 @@ cops_drupal_dotenv_defaults: |-
   # Used in INSTALL ---------------
   PROFILE_NAME={{ cops_drupal_profile_name }}
   SITE_NAME={{ cops_drupal_name }}
-  SITE_MAIL=contact@{{ cops_drupal_hostname }}
-  ADMIN_MAIL=sysadmin+{{ cops_drupal_name }}@{{ cops_drupal_hostname }}
+  SITE_MAIL={{cops_drupal_site_mail}}
+  ADMIN_MAIL={{cops_drupal_site_adminmail}}
   ADMIN_NAME=admin
   ADMIN_PASS={{ cops_drupal_admin_pass }}
   SITE_DEFAULT_COUNTRY=FR
@@ -219,6 +220,7 @@ cops_drupal_dotenv_defaults: |-
   {% endif %}
   MAILCATCHER_USER={{cops_drupal_mailcatcher_user}}
   MAILCATCHER_PASSWORD={{cops_drupal_mailcatcher_password}}
+  # db
   DBS_DBNAMES={{cops_drupal_backuped_dbs}}
   DBS_KEEP_LASTS={{cops_drupal_backuped_dbs_keep_lasts}}
   NO_FORCE_SSL={{ cops_drupal_nginx_avoid_ssl_rewrite }}
@@ -230,19 +232,48 @@ cops_drupal_dotenv_defaults: |-
   DRUPAL_SETTINGS__smtp_DOT_settings___smtp_password={{cops_drupal_smtp_password}}
   DRUPAL_SETTINGS__smtp_DOT_settings___smtp_autotls={{"{0}".format(cops_drupal_smtp_autotls)|lower}}
 cops_drupal_mail_interface: 'SMTPMailSystem'
-cops_drupal_dotenv: "{{cops_drupal_dotenv_defaults}}"
 cops_drupal_dotenv_extra: ""
+cops_drupal_dotenv: |
+  {{cops_drupal_dotenv_defaults}}
+  {{cops_drupal_dotenv_extra}}
 # free form for params inside dockerenv
 cops_drupal_docker_env_extra: ""
 # Normally playbook is in ./.ansible/playbooks
 cops_drupal_code_dir: "{{playbook_dir}}/../.."
-cops_drupal_code_rsync_path: "{%if cops_drupal_sync_ssh_user_internal and (cops_drupal_sync_ssh_user_internal != 'root')%}sudo {% endif%}rsync"
-cops_drupal_code_rsync_opts: [
+cops_drupal_has_bastion: "{{(ansible_bastion|default(''))|copsf_asbool}}"
+cops_drupal_rsync_password: "{{ansible_become_pass|default('')}}"
+cops_drupal_rsync_user: "{{ansible_user|default('root')}}"
+cops_drupal_rsync_escalate: "{{cops_drupal_rsync_user != 'root'}}"
+cops_drupal_rsync_path: "{% if cops_drupal_rsync_escalate %}sudo {%if cops_drupal_rsync_password%}-S {%endif%}{%endif %}rsync"
+cops_drupal_rsync_code_path: "{%if cops_drupal_sync_ssh_user_internal and (cops_drupal_sync_ssh_user_internal != 'root')%}sudo {% endif%}rsync"
+cops_drupal_rsync_env: {PASSWORD: "{{cops_drupal_rsync_password}}"}
+cops_drupal_rsync_rsh_wrapper_path: "{{playbook_dir|copsf_dirname}}/ssh_sudo"
+cops_drupal_rsync_rsh_wrapper: |-
+  #!/bin/bash
+  # Wrapper to escalate remote shell as root for rsync syncronisation
+  { if [ "x${PASSWORD-}" != "x" ];then echo "${PASSWORD-}";fi;cat -; }| ssh "$@" &
+cops_drupal_rsync_rsh: "{% if cops_drupal_rsync_password and cops_drupal_rsync_escalate%}{{cops_drupal_rsync_rsh_wrapper_path}}{%else%}ssh{%endif%}"
+cops_drupal_rsync_set_remote_user: "{{ cops_drupal_has_bastion and 'yes' or 'no'}}"
+cops_drupal_rsync_compress: false
+# retro compat
+cops_drupal_code_rsync_path: "{{cops_drupal_rsync_code_path}}"
+cops_drupal_code_rsync_opts: "{{cops_drupal_rsync_code_opts}}"
+#
+cops_drupal_rsync_opts: |-
+  {#- put $ssh_args here as when we use a custom rsh for interactive
+  sudopass, they would get ignored by the syncronise module #}
+  {%- set o = ['--rsh={0} {1}'.format(cops_drupal_rsync_rsh, cops_drupal_sshargs)|quote] %}
+  {{-o|to_json|string}}
+cops_drupal_rsync_code_opts:  "{{cops_drupal_rsync_opts+cops_drupal_rsync_code_default_opts}}"
+cops_drupal_rsync_theme_opts: "{{cops_drupal_rsync_opts+cops_drupal_rsync_theme_default_opts}}"
+cops_drupal_rsync_theme_default_opts: ["-azv", "--delete"]
+cops_drupal_rsync_code_default_opts: [
     "-azv",
     # include deploy projects base code
     "--include", "local/*-deploy",
-    "--exclude", ".ansible",
     "--exclude", "local/*",
+    #
+    "--exclude", ".ansible",
     "--exclude", ".tox",
     "--exclude", ".env",
     "--exclude", ".vscode",
@@ -251,6 +282,7 @@ cops_drupal_backup_postgresql: "{{'5432' == '{0}'.format(cops_drupal_db_port)}}"
 cops_drupal_backup_paths_to_backup:
 - "{{cops_drupal_dir}}"
 cops_drupal_backup_docker_volumes: [publiccontrib, private]
+cops_drupal_backup_docker_volumes_none: []
 cops_drupal_backup_docker_volumes_: |-
   {% set res = [] %}
   {% for i in cops_drupal_backup_docker_volumes %}
@@ -304,11 +336,12 @@ teleport_restart_services: "{{teleport_services}}"
 # teleport_mode: default|makinastates
 # teleport_origin: <origin from where we restore>
 # teleport_destination: <destination to restore>
+teleport_force_wd: "{{cops_drupal_dir}}"
 teleport_wd: "{{(
   cops_drupal_devmode and
   (playbook_dir|copsf_dirname|copsf_dirname) or
-  cops_drupal_dir)}}"
-teleport_orig_wd: "{{cops_drupal_dir}}"
+  teleport_force_wd)}}"
+teleport_orig_wd: "{{teleport_force_orig_wd|default(teleport_force_wd)}}"
 teleport_orig_composename: "{{cops_drupal_name}}"
 teleport_data_dir: "{{teleport_wd}}/local/nobackup/teleport"
 teleport_orig_data_dir: "{{teleport_orig_wd}}/local/nobackup/teleport"
@@ -352,7 +385,7 @@ teleport_paths_common:
 teleport_paths: "{{teleport_paths_common|combine(lookup('vars', 'teleport_paths_'+_teleport_mode))}}"
 teleport_paths_origin_dump_file: "{{teleport_paths.origin_dump}}/{{teleport_paths.dump_file}}"
 teleport_paths_dest_dump_file: "{{teleport_paths.dest_dump}}/{{teleport_paths.dump_file}}"
-teleport_rsync_args: "-azv --delete --delete-after"
+teleport_rsync_args: "-az{{teleport_verbose}} --delete --delete-after"
 teleport_rsync_extra_args: "{{teleport_rsync_origin_extra_args}}"
 teleport_rsync_origin_extra_args: "{% if teleport_origin_vars.get('ansible_become', '')           and (teleport_origin_vars.get('ansible_user', '')      not in [None, '', 'root'])%}--rsync-path='sudo rsync'{%endif%}"
 teleport_rsync_destination_extra_args: "{% if teleport_destination_vars.get('ansible_become', '') and (teleport_destination_vars.get('ansible_user', '') not in [None, '', 'root'])%}--rsync-path='sudo rsync'{%endif%}"
@@ -497,8 +530,10 @@ teleport_destination_sshargs_default: >-
   {% set user = cops_drupal_sync_dest_ssh_user|default(cops_drupal_sync_ssh_user) or (ansible_user|default('')) or '' %}
   {% if user %}-l {{user}}{% endif %}
   {% endif %}
+teleport_drupal_fakeinitial: true
 teleport_post_reset_script_default: |-
   set -ex
+  {% if teleport_drupal_fakeinitial %}
   cd {{teleport_wd}};
   su="gosu drupal";
   cat|COMPOSE_INTERACTIVE_NO_CLI= {{teleport_dc}} \
@@ -511,6 +546,7 @@ teleport_post_reset_script_default: |-
   bin/drush cr
   #
   EOF
+  {%endif%}
   export COMPOSE_INTERACTIVE_NO_CLI=1
 teleport_pg_restore_clean: true
 teleport_pg_restore_flags: >-
@@ -563,7 +599,7 @@ teleport_post_force_restart_services: "setup-postgres setup-mysql redis memcache
 teleport_restart_dependant_services: |-
   set -e
   cd "{{teleport_wd}}"
-  has_service() { {{teleport_dc}} config |grep -qE "^   +${1}:"; }
+  has_service() { {{teleport_dc}} config |grep -qE "^  +${1}:"; }
   log() { echo "$@" >&2; }
   restarted_services="{{teleport_post_restart_services}}"
   frestarted_services="{{teleport_post_force_restart_services}}"
