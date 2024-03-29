@@ -1,0 +1,11 @@
+#!/bin/bash
+# Wrapper to escalate remote shell as root for rsync syncronisation
+PASSWORD=${PASSWORD-}
+if [[ -n "$PASSWORD" ]];then
+    {
+        echo "$PASSWORD";
+        cat - ;
+    } | ssh $@ &
+else
+    ssh $@ &
+fi
