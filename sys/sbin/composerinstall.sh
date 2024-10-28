@@ -74,6 +74,7 @@ if [[ -n "$DISABLE_COMPOSER_TLS" ]];then
     debug "afwully disabling tls, seems CentOS+TLS is bad for https://codeload.github.com"
     $GOSU_CMD /usr/local/bin/composer config -g disable-tls true
 fi
+args="$@"
 $GOSU_CMD sh -exc "COMPOSER_MEMORY_LIMIT=-1 php -d memory_limit=-1 \
-    /usr/local/bin/composer install --prefer-dist --optimize-autoloader --no-interaction $VDEBUG $@" || die "composer failed"
+    /usr/local/bin/composer install --prefer-dist --optimize-autoloader --no-interaction $VDEBUG $args" || die "composer failed"
 # vim:set et sts=4 ts=4 tw=0:

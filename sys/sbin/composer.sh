@@ -72,4 +72,5 @@ if [[ -n "$DISABLE_COMPOSER_TLS" ]];then
     debug "afwully disabling tls, seems CentOS+TLS is bad for https://codeload.github.com"
     $GOSU_CMD /usr/local/bin/composer config -g disable-tls true
 fi
-$GOSU_CMD /usr/local/bin/composer $VDEBUG $@ || die "composer failed"
+args="$@"
+$GOSU_CMD /usr/local/bin/composer $VDEBUG $args || die "composer failed"
