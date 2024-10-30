@@ -111,8 +111,8 @@ RUN \
     && sed -i -re "s/(php-?)[0-9]\.[0-9]+/\1$PHP_VER/g" yum.txt \
     && yum -y update \
     && yum -y install epel-release \
-    && yum -y install http://rpms.remirepo.net/enterprise/remi-release-7.rpm \
-    && yum -y install -y https://download.postgresql.org/pub/repos/yum/reporpms/EL-7-x86_64/pgdg-redhat-repo-latest.noarch.rpm \
+    && if [ ! -e /etc/yum.repos.d/remi.repo ];then  yum -y install http://rpms.remirepo.net/enterprise/remi-release-7.rpm;fi \
+    && if [ ! -e /etc/yum.repos.d/pgdg-redhat-all.repo ];then yum -y install -y https://download.postgresql.org/pub/repos/yum/reporpms/EL-7-x86_64/pgdg-redhat-repo-latest.noarch.rpm;fi \
     && yum install -y yum-utils yum-priorities \
     && yum -y update \
     && yum-config-manager --enable remi-php${PHP_VER_NO_DOT} \
@@ -139,7 +139,7 @@ RUN \
     && /usr/local/bin/composer --version  \
     \
     && : "make shortcut links for php"\
-    && for i in php-fpm php;do if [ -e /usr/local/bin/$i ];then rm -f /usr/local/bin/$i;fi;ln -sfv $(which ${i}${PHP_VER}) /usr/local/bin/${i};done \
+    && for i in php-fpm php;do if [ -e /usr/local/bin/$i ];then rm -f /usr/local/bin/$i;fi;p=$(which ${i}${PHP_VER}||true);if [ "x$p" = "x" ];then p=$(which ${i});fi;ln -sfv $p /usr/local/bin/${i};done \
     \
     && : "$(date): setup project user & workdir, and ~/ssh"\
     && for g in $APP_GROUP $PHP_GROUP;do if !( getent group ${g} &>/dev/null );then groupadd ${g};fi;done \
