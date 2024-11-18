@@ -24,7 +24,7 @@ ARG \
     CPLUS_INCLUDE_PATH=/usr/include/gdal/ \
     CPPLAGS= \
     DEBIAN_FRONTEND=noninteractive \
-    DEV_DEPENDENCIES_PATTERN='^#\s*dev dep' \
+    DEV_DEPENDENCIES_PATTERN='^#\s*dev dependencies' \
     DRUPAL_DOCKERFILE_VERSION=1 \
     DOCS_FOLDERS='docs' \
     GPG_KEYS=B42F6819007F00F88E364FD4036A9C25BF357DD4 \
