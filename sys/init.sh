@@ -20,11 +20,6 @@ BASE_DIR="${BASE_DIR:-${TOPDIR}}"
 # now be in stop-on-error mode
 set -e
 
-# export back the gateway ip as a host if ip is available in container
-if ( ip -4 route list match 0/0 &>/dev/null );then
-    ip -4 route list match 0/0 | awk '{print $3" host.docker.internal"}' >> /etc/hosts
-fi
-
 # load locales & default env while preserving original $PATH
 export OPATH=$PATH
 for i in /etc/environment /etc/default/locale;do if [ -e $i ];then . $i;fi;done
@@ -40,8 +35,6 @@ if [[ -z "${SRC_DIR}" ]];then
 fi
 export ROOTPATH=$SRC_DIR PROJECT_DIR=$SRC_DIR
 
-# sourcing bash utilities
-. "$BASE_DIR/init/sbin/base.sh"
 
 DEFAULT_IMAGE_MODE="phpfpm"
 
@@ -75,6 +68,7 @@ NO_IMAGE_SETUP="${NO_IMAGE_SETUP:-"1"}"
 SKIP_IMAGE_SETUP="${KIP_IMAGE_SETUP:-""}"
 FORCE_IMAGE_SETUP="${FORCE_IMAGE_SETUP:-"1"}"
 SKIP_SERVICES_SETUP="${SKIP_SERVICES_SETUP-}"
+EP_CUSTOM_ACTIONS="fixperms|"
 IMAGE_SETUP_MODES="${IMAGE_SETUP_MODES:-"fg|phpfpm"}"
 export CRON_LOGS_DIR="${CRON_LOGS_DIR:-$SRC_DIR/var/private/logs}"
 export FPM_LOGS_DIR="${FPM_LOGS_DIR:-$SRC_DIR/var/private/logs}"
@@ -86,8 +80,8 @@ export RSYSLOG_LOGFORMAT="${RSYSLOG_LOGFORMAT:-'%timegenerated% %syslogtag% %msg
 export RSYSLOG_OUT_LOGFILE="${RSYSLOG_OUT_LOGFILE:-n}"
 export RSYSLOG_REPEATED_MSG_REDUCTION="${RSYSLOG_REPEATED_MSG_REDUCTION:-off}"
 
-FINDPERMS_PERMS_DIRS_CANDIDATES="${FINDPERMS_PERMS_DIRS_CANDIDATES:-"var/public var/private var/docs"}"
-FINDPERMS_OWNERSHIP_DIRS_CANDIDATES="${FINDPERMS_OWNERSHIP_DIRS_CANDIDATES:-"var/public var/private var/docs"}"
+FINDPERMS_PERMS_DIRS_CANDIDATES="${FINDPERMS_PERMS_DIRS_CANDIDATES:-"app/var/public app/var/private app/var/docs app/var/outdocs"}"
+FINDPERMS_OWNERSHIP_DIRS_CANDIDATES="${FINDPERMS_OWNERSHIP_DIRS_CANDIDATES:-"app/var/public app/var/private app/var/docs app/var/outdocs bin init sbin docs"}"
 SKIP_RENDERED_CONFIGS="${SKIP_RENDERED_CONFIGS:-varnish}"
 export HISTFILE="${LOCAL_DIR}/.bash_history"
 export PSQL_HISTORY="${LOCAL_DIR}/.psql_history"
@@ -106,7 +100,7 @@ export APP_ENV=${APP_ENV:-"prod"}
 export APP_SECRET=${APP_SECRET:-42424242424242424242424242}
 # directories created and set on user ownership at startup
 export EXTRA_USER_DIRS="${EXTRA_USER_DIRS-}"
-export USER_DIRS="${USER_DIRS:-". app/public app/private $FPM_LOGS_DIR $CRON_LOGS_DIR ${EXTRA_USER_DIRS}"}"
+export USER_DIRS="${USER_DIRS:-". app/var/public app/var/private $FPM_LOGS_DIR $CRON_LOGS_DIR ${EXTRA_USER_DIRS}"}"
 export SHELL_USER="${SHELL_USER:-${APP_USER}}" SHELL_EXECUTABLE="${SHELL_EXECUTABLE:-/bin/bash}"
 
 # Drupal variables
@@ -160,10 +154,7 @@ call_drush() { ( cd $SRC_DIR && gosu $APP_USER bin/drush -y "$@" ); }
 #  configure: generate configs from template at runtime
 configure() {
     if [[ -n $NO_CONFIGURE ]];then return 0;fi
-    for i in $USER_DIRS;do
-        if [ ! -e "$i" ];then mkdir -p "$i" >&2;fi
-        chown $APP_USER:$PHP_GROUP "$i"
-    done
+    create_userdirs
     for i in $HISTFILE $MYSQL_HISTFILE $PSQL_HISTORY;do if [ ! -e "$i" ];then touch "$i";fi;done
     for i in $IPYTHONDIR;do if [ ! -e "$i" ];then mkdir -pv "$i";fi;done
     for i in $HISTFILE $MYSQL_HISTFILE $PSQL_HISTORY $IPYTHONDIR;do chown -Rf $APP_USER "$i";done
@@ -193,7 +184,7 @@ configure() {
         debuglog "Generating with frep $i:/$d"
         frep "$i:/$d" --overwrite
     done
-    cd - >/dev/null 2>&1
+    cd "$TOPDIR" >/dev/null 2>&1
 
     # FPMPOOLS:
     #   - patch logsdirs
@@ -264,6 +255,7 @@ configure() {
                 && gosu $APP_USER ln -s "../../init/sbin/${shortcut}" "${shortcutlink}" )
         fi
     done
+    . "$BASE_DIR/init/sbin/base.sh"
 
     # add shortcut from /$SRC_DIRwww/sites/default/files to /code/app/var/public
     # do it before the sync for nginx
@@ -335,12 +327,22 @@ services_setup() {
 }
 
 # fixperms: basic file & ownership enforcement
+create_userdirs() {
+    for i in $USER_DIRS;do
+        if [ ! -e "$i" ];then mkdir -p "$i" >&2;fi
+        chown $APP_USER:$PHP_GROUP "$i"
+    done
+}
 fixperms() {
     if [[ -n $NO_FIXPERMS ]];then return 0;fi
 	if [ "$(id -u $APP_USER)" != "$HOST_USER_UID" ];then
 	    groupmod -g $HOST_USER_UID $APP_USER
 	    usermod -u $HOST_USER_UID -g $HOST_USER_UID $APP_USER
 	fi
+    chmod -R 0700 /home/${APP_USER}/.ssh
+    find /home/${APP_USER}/.ssh -type f               | while read f;do chmod 0600 "$f";done
+    find /home/${APP_USER}/.ssh -type f -name "*.pub" | while read f;do chmod 0644 "$f";done
+    chown -R ${APP_USER}:${PHP_GROUP} /home/${APP_USER}/.ssh
     for i in /etc/{crontabs,cron.d} /etc/logrotate.d /etc/supervisor.d;do
         if [ -e $i ];then
             while read f;do
@@ -349,14 +351,21 @@ fixperms() {
             done < <(find "$i" -type f)
         fi
     done
+    create_userdirs
     for i in $USER_DIRS;do if [ -e "$i" ];then chown $APP_USER:$PHP_GROUP "$i";fi;done
-    while read f;do chmod 0755 "$f";done < \
-        <(find $FINDPERMS_PERMS_DIRS_CANDIDATES -type d -not \( -perm 0755 2>/dev/null \) |sort)
-    while read f;do chmod 0644 "$f";done < \
-        <(find $FINDPERMS_PERMS_DIRS_CANDIDATES -type f -not \( -perm 0644 2>/dev/null \) |sort)
-    while read f;do chown $APP_USER:$PHP_GROUP "$f";done < \
-        <(find $FINDPERMS_OWNERSHIP_DIRS_CANDIDATES \
-          \( -type d -or -type f \) -not \( -user $APP_USER -or -group $PHP_GROUP \)  2>/dev/null|sort)
+    if [[ -n "$FINDPERMS_PERMS_DIRS_CANDIDATES" ]];then
+        for i in $FINDPERMS_PERMS_DIRS_CANDIDATES;do if [ -e "$i" ];then
+            while read f;do chmod 0755 "$f";done < <(find $i -type d -not \( -perm 0755 2>/dev/null \) |sort)
+            while read f;do chmod 0644 "$f";done < <(find $i -type f -not \( -perm 0645 2>/dev/null \) |sort)
+        fi;done
+    fi
+    if [[ -n "$FINDPERMS_OWNERSHIP_DIRS_CANDIDATES" ]];then
+        for i in $FINDPERMS_OWNERSHIP_DIRS_CANDIDATES;do if [ -e "$i" ];then
+            echo $(pwd) $i
+            while read f;do chown $APP_USER:$PHP_GROUP "$f";done < \
+                <(find $i \( -type d -or -type f \) -not \( -user $APP_USER -or -group $PHP_GROUP \) 2>/dev/null |sort)
+        fi;done
+    fi
 }
 
 #  usage: print this help
@@ -433,6 +442,11 @@ if ( echo $1 | grep -E -q -- "--help|-h|help" );then usage;fi
 if [[ -n ${NO_START-} ]];then
     while true;do echo "start skipped" >&2;sleep 65535;done
     exit $?
+fi
+if ( echo $1 | grep -E -q -- "^(${EP_CUSTOM_ACTIONS}do_fg|usage)$" );then $@;exit $?;fi
+# export back the gateway ip as a host if ip is available in container
+if ( ip -4 route list match 0/0 &>/dev/null );then
+    if ! (ip -4 route list match 0/0 | awk '{print $3" host.docker.internal"}' >> /etc/hosts );then echo "failed to patch /etc/hosts, continuing anyway";fi
 fi
 
 # only display startup logs when we start in daemon mode and try to hide most when starting an (eventually interactive) shell.
