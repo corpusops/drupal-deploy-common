@@ -2,8 +2,8 @@ ARG BASE=corpusops/ubuntu-bare:20.04
 FROM $BASE AS BASE
 
 RUN \
-    --mount=type=cache,id=cops${BASE}apt,target=/var/cache/apt \
-    --mount=type=cache,id=cops${BASE}list,target=/var/lib/apt/lists \
+    --mount=type=cache,id=cops${BASE}apt,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,id=cops${BASE}list,target=/var/lib/apt/lists,sharing=locked \
     bash -c 'set -ex \
     && : "Install Varnish Package" \
     && apt-get update && apt-get install -y varnish \
